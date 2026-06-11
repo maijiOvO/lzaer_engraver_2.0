@@ -1,0 +1,3532 @@
+{
+  "images": [
+    {
+      "stem": "abstract_1",
+      "file": "test_imgs\\abstract_1.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 5715,
+          "edge_density_pct": 2.21,
+          "line_pixels": 17407,
+          "component_count": 7286,
+          "endpoints": 4524,
+          "junctions": 4840
+        },
+        "lineart_anime": {
+          "processing_ms": 799,
+          "edge_density_pct": 13.78,
+          "line_pixels": 108397,
+          "component_count": 2348,
+          "endpoints": 6821,
+          "junctions": 67811
+        },
+        "canny": {
+          "processing_ms": 106,
+          "edge_density_pct": 9.73,
+          "line_pixels": 76537,
+          "component_count": 397,
+          "endpoints": 1603,
+          "junctions": 28008
+        }
+      }
+    },
+    {
+      "stem": "abstract_2",
+      "file": "test_imgs\\abstract_2.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1646,
+          "edge_density_pct": 0.9,
+          "line_pixels": 7093,
+          "component_count": 2996,
+          "endpoints": 1677,
+          "junctions": 1978
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 13.64,
+          "line_pixels": 107248,
+          "component_count": 1715,
+          "endpoints": 5402,
+          "junctions": 71522
+        },
+        "canny": {
+          "processing_ms": 105,
+          "edge_density_pct": 9.58,
+          "line_pixels": 75332,
+          "component_count": 451,
+          "endpoints": 1614,
+          "junctions": 24841
+        }
+      }
+    },
+    {
+      "stem": "abstract_3",
+      "file": "test_imgs\\abstract_3.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1407,
+          "edge_density_pct": 1.14,
+          "line_pixels": 8930,
+          "component_count": 4270,
+          "endpoints": 2680,
+          "junctions": 1708
+        },
+        "lineart_anime": {
+          "processing_ms": 11,
+          "edge_density_pct": 7.5,
+          "line_pixels": 58958,
+          "component_count": 1270,
+          "endpoints": 3295,
+          "junctions": 35468
+        },
+        "canny": {
+          "processing_ms": 75,
+          "edge_density_pct": 5.46,
+          "line_pixels": 42926,
+          "component_count": 313,
+          "endpoints": 1013,
+          "junctions": 12565
+        }
+      }
+    },
+    {
+      "stem": "city_street",
+      "file": "test_imgs\\city_street.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1382,
+          "edge_density_pct": 0.41,
+          "line_pixels": 1965,
+          "component_count": 1408,
+          "endpoints": 531,
+          "junctions": 122
+        },
+        "lineart_anime": {
+          "processing_ms": 8,
+          "edge_density_pct": 14.12,
+          "line_pixels": 67792,
+          "component_count": 1290,
+          "endpoints": 3671,
+          "junctions": 42438
+        },
+        "canny": {
+          "processing_ms": 78,
+          "edge_density_pct": 9.91,
+          "line_pixels": 47581,
+          "component_count": 490,
+          "endpoints": 1369,
+          "junctions": 14028
+        }
+      }
+    },
+    {
+      "stem": "cityscape_6",
+      "file": "test_imgs\\cityscape_6.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1436,
+          "edge_density_pct": 0.65,
+          "line_pixels": 7066,
+          "component_count": 2469,
+          "endpoints": 1669,
+          "junctions": 2429
+        },
+        "lineart_anime": {
+          "processing_ms": 10,
+          "edge_density_pct": 2.77,
+          "line_pixels": 29947,
+          "component_count": 919,
+          "endpoints": 1152,
+          "junctions": 17274
+        },
+        "canny": {
+          "processing_ms": 71,
+          "edge_density_pct": 1.87,
+          "line_pixels": 20163,
+          "component_count": 674,
+          "endpoints": 862,
+          "junctions": 2853
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_beijing_forbidden_city_local",
+      "file": "test_imgs\\cityscape_curated\\cityscape_beijing_forbidden_city_local.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2759,
+          "edge_density_pct": 1.5,
+          "line_pixels": 313841,
+          "component_count": 24924,
+          "endpoints": 17629,
+          "junctions": 270174
+        },
+        "lineart_anime": {
+          "processing_ms": 164,
+          "edge_density_pct": 7.69,
+          "line_pixels": 1609822,
+          "component_count": 23873,
+          "endpoints": 69695,
+          "junctions": 836564
+        },
+        "canny": {
+          "processing_ms": 2518,
+          "edge_density_pct": 5.85,
+          "line_pixels": 1223321,
+          "component_count": 6665,
+          "endpoints": 26226,
+          "junctions": 291709
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_chongqing_hills_local",
+      "file": "test_imgs\\cityscape_curated\\cityscape_chongqing_hills_local.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1533,
+          "edge_density_pct": 1.29,
+          "line_pixels": 4462,
+          "component_count": 3231,
+          "endpoints": 1252,
+          "junctions": 136
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 22.93,
+          "line_pixels": 79239,
+          "component_count": 1673,
+          "endpoints": 4771,
+          "junctions": 42222
+        },
+        "canny": {
+          "processing_ms": 62,
+          "edge_density_pct": 16.9,
+          "line_pixels": 58420,
+          "component_count": 302,
+          "endpoints": 1157,
+          "junctions": 18498
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_dubai_marina_unsplash_16",
+      "file": "test_imgs\\cityscape_curated\\cityscape_dubai_marina_unsplash_16.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1583,
+          "edge_density_pct": 3.65,
+          "line_pixels": 140018,
+          "component_count": 17629,
+          "endpoints": 12794,
+          "junctions": 101589
+        },
+        "lineart_anime": {
+          "processing_ms": 31,
+          "edge_density_pct": 8.95,
+          "line_pixels": 343606,
+          "component_count": 5760,
+          "endpoints": 13050,
+          "junctions": 151789
+        },
+        "canny": {
+          "processing_ms": 362,
+          "edge_density_pct": 6.67,
+          "line_pixels": 256214,
+          "component_count": 1987,
+          "endpoints": 4296,
+          "junctions": 53663
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_guangzhou_bridge_local",
+      "file": "test_imgs\\cityscape_curated\\cityscape_guangzhou_bridge_local.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1454,
+          "edge_density_pct": 3.52,
+          "line_pixels": 6605,
+          "component_count": 3637,
+          "endpoints": 2401,
+          "junctions": 528
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 19.15,
+          "line_pixels": 35909,
+          "component_count": 904,
+          "endpoints": 2442,
+          "junctions": 18087
+        },
+        "canny": {
+          "processing_ms": 35,
+          "edge_density_pct": 13.54,
+          "line_pixels": 25381,
+          "component_count": 182,
+          "endpoints": 575,
+          "junctions": 7451
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_hong_kong_harbour_night_03",
+      "file": "test_imgs\\cityscape_curated\\cityscape_hong_kong_harbour_night_03.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2404,
+          "edge_density_pct": 8.76,
+          "line_pixels": 152763,
+          "component_count": 34839,
+          "endpoints": 26855,
+          "junctions": 75774
+        },
+        "lineart_anime": {
+          "processing_ms": 24,
+          "edge_density_pct": 21.79,
+          "line_pixels": 379904,
+          "component_count": 9832,
+          "endpoints": 23819,
+          "junctions": 187084
+        },
+        "canny": {
+          "processing_ms": 370,
+          "edge_density_pct": 15.42,
+          "line_pixels": 268748,
+          "component_count": 1840,
+          "endpoints": 5212,
+          "junctions": 88417
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_hong_kong_skyline_night_04",
+      "file": "test_imgs\\cityscape_curated\\cityscape_hong_kong_skyline_night_04.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2603,
+          "edge_density_pct": 8.84,
+          "line_pixels": 139501,
+          "component_count": 34974,
+          "endpoints": 28292,
+          "junctions": 61146
+        },
+        "lineart_anime": {
+          "processing_ms": 25,
+          "edge_density_pct": 20.39,
+          "line_pixels": 321787,
+          "component_count": 8688,
+          "endpoints": 21500,
+          "junctions": 161986
+        },
+        "canny": {
+          "processing_ms": 371,
+          "edge_density_pct": 14.28,
+          "line_pixels": 225358,
+          "component_count": 1513,
+          "endpoints": 4429,
+          "junctions": 76627
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_london_city_09",
+      "file": "test_imgs\\cityscape_curated\\cityscape_london_city_09.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2112,
+          "edge_density_pct": 10.4,
+          "line_pixels": 201023,
+          "component_count": 24328,
+          "endpoints": 18951,
+          "junctions": 141257
+        },
+        "lineart_anime": {
+          "processing_ms": 26,
+          "edge_density_pct": 18.56,
+          "line_pixels": 358810,
+          "component_count": 7245,
+          "endpoints": 22033,
+          "junctions": 155414
+        },
+        "canny": {
+          "processing_ms": 361,
+          "edge_density_pct": 13.41,
+          "line_pixels": 259342,
+          "component_count": 935,
+          "endpoints": 3776,
+          "junctions": 85531
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_nyc_jersey_panorama_02",
+      "file": "test_imgs\\cityscape_curated\\cityscape_nyc_jersey_panorama_02.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2813,
+          "edge_density_pct": 2.98,
+          "line_pixels": 43921,
+          "component_count": 17049,
+          "endpoints": 12125,
+          "junctions": 11038
+        },
+        "lineart_anime": {
+          "processing_ms": 31,
+          "edge_density_pct": 12.04,
+          "line_pixels": 177494,
+          "component_count": 3387,
+          "endpoints": 10594,
+          "junctions": 77560
+        },
+        "canny": {
+          "processing_ms": 241,
+          "edge_density_pct": 8.27,
+          "line_pixels": 122018,
+          "component_count": 327,
+          "endpoints": 1552,
+          "junctions": 42492
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_nyc_lower_manhattan_01",
+      "file": "test_imgs\\cityscape_curated\\cityscape_nyc_lower_manhattan_01.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1913,
+          "edge_density_pct": 7.92,
+          "line_pixels": 164136,
+          "component_count": 20173,
+          "endpoints": 16587,
+          "junctions": 114108
+        },
+        "lineart_anime": {
+          "processing_ms": 24,
+          "edge_density_pct": 17.25,
+          "line_pixels": 357627,
+          "component_count": 9728,
+          "endpoints": 26183,
+          "junctions": 112085
+        },
+        "canny": {
+          "processing_ms": 371,
+          "edge_density_pct": 11.56,
+          "line_pixels": 239648,
+          "component_count": 489,
+          "endpoints": 2856,
+          "junctions": 88231
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_river_highrises_unsplash_15",
+      "file": "test_imgs\\cityscape_curated\\cityscape_river_highrises_unsplash_15.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1641,
+          "edge_density_pct": 9.96,
+          "line_pixels": 244660,
+          "component_count": 34036,
+          "endpoints": 28275,
+          "junctions": 162685
+        },
+        "lineart_anime": {
+          "processing_ms": 26,
+          "edge_density_pct": 17.11,
+          "line_pixels": 420576,
+          "component_count": 5410,
+          "endpoints": 16134,
+          "junctions": 135478
+        },
+        "canny": {
+          "processing_ms": 349,
+          "edge_density_pct": 13.28,
+          "line_pixels": 326346,
+          "component_count": 1197,
+          "endpoints": 5129,
+          "junctions": 61501
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_shanghai_pudong_hdr_06",
+      "file": "test_imgs\\cityscape_curated\\cityscape_shanghai_pudong_hdr_06.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2044,
+          "edge_density_pct": 4.66,
+          "line_pixels": 85845,
+          "component_count": 9053,
+          "endpoints": 7785,
+          "junctions": 59079
+        },
+        "lineart_anime": {
+          "processing_ms": 22,
+          "edge_density_pct": 7.55,
+          "line_pixels": 139154,
+          "component_count": 3483,
+          "endpoints": 7413,
+          "junctions": 59295
+        },
+        "canny": {
+          "processing_ms": 205,
+          "edge_density_pct": 5.22,
+          "line_pixels": 96254,
+          "component_count": 879,
+          "endpoints": 2224,
+          "junctions": 27423
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_shanghai_pudong_local",
+      "file": "test_imgs\\cityscape_curated\\cityscape_shanghai_pudong_local.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2218,
+          "edge_density_pct": 10.13,
+          "line_pixels": 1706563,
+          "component_count": 30303,
+          "endpoints": 23017,
+          "junctions": 1642800
+        },
+        "lineart_anime": {
+          "processing_ms": 146,
+          "edge_density_pct": 9.7,
+          "line_pixels": 1633465,
+          "component_count": 33640,
+          "endpoints": 67782,
+          "junctions": 666041
+        },
+        "canny": {
+          "processing_ms": 1901,
+          "edge_density_pct": 7.73,
+          "line_pixels": 1302665,
+          "component_count": 10486,
+          "endpoints": 26447,
+          "junctions": 269727
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_singapore_marina_bay_07",
+      "file": "test_imgs\\cityscape_curated\\cityscape_singapore_marina_bay_07.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1507,
+          "edge_density_pct": 7.97,
+          "line_pixels": 195873,
+          "component_count": 27875,
+          "endpoints": 22312,
+          "junctions": 131880
+        },
+        "lineart_anime": {
+          "processing_ms": 26,
+          "edge_density_pct": 13.44,
+          "line_pixels": 330324,
+          "component_count": 6440,
+          "endpoints": 19624,
+          "junctions": 134584
+        },
+        "canny": {
+          "processing_ms": 319,
+          "edge_density_pct": 9.9,
+          "line_pixels": 243365,
+          "component_count": 847,
+          "endpoints": 3484,
+          "junctions": 78148
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_tianjin_haihe_local",
+      "file": "test_imgs\\cityscape_curated\\cityscape_tianjin_haihe_local.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 2404,
+          "edge_density_pct": 8.06,
+          "line_pixels": 2033923,
+          "component_count": 34804,
+          "endpoints": 18531,
+          "junctions": 1980095
+        },
+        "lineart_anime": {
+          "processing_ms": 202,
+          "edge_density_pct": 8.9,
+          "line_pixels": 2244715,
+          "component_count": 39289,
+          "endpoints": 84849,
+          "junctions": 825033
+        },
+        "canny": {
+          "processing_ms": 2816,
+          "edge_density_pct": 7.13,
+          "line_pixels": 1799863,
+          "component_count": 15950,
+          "endpoints": 41525,
+          "junctions": 243688
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_tianjin_style_river_16",
+      "file": "test_imgs\\cityscape_curated\\cityscape_tianjin_style_river_16.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1598,
+          "edge_density_pct": 9.96,
+          "line_pixels": 244660,
+          "component_count": 34036,
+          "endpoints": 28275,
+          "junctions": 162685
+        },
+        "lineart_anime": {
+          "processing_ms": 24,
+          "edge_density_pct": 17.11,
+          "line_pixels": 420576,
+          "component_count": 5410,
+          "endpoints": 16134,
+          "junctions": 135478
+        },
+        "canny": {
+          "processing_ms": 347,
+          "edge_density_pct": 13.28,
+          "line_pixels": 326346,
+          "component_count": 1197,
+          "endpoints": 5129,
+          "junctions": 61501
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_tokyo_night_2014_11",
+      "file": "test_imgs\\cityscape_curated\\cityscape_tokyo_night_2014_11.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1692,
+          "edge_density_pct": 17.29,
+          "line_pixels": 450784,
+          "component_count": 22428,
+          "endpoints": 19133,
+          "junctions": 386946
+        },
+        "lineart_anime": {
+          "processing_ms": 33,
+          "edge_density_pct": 24.64,
+          "line_pixels": 642459,
+          "component_count": 20730,
+          "endpoints": 44929,
+          "junctions": 299375
+        },
+        "canny": {
+          "processing_ms": 653,
+          "edge_density_pct": 17.44,
+          "line_pixels": 454654,
+          "component_count": 3245,
+          "endpoints": 8940,
+          "junctions": 157964
+        }
+      }
+    },
+    {
+      "stem": "cityscape_curated__cityscape_tokyo_night_unsplash_17",
+      "file": "test_imgs\\cityscape_curated\\cityscape_tokyo_night_unsplash_17.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1606,
+          "edge_density_pct": 4.8,
+          "line_pixels": 179406,
+          "component_count": 21751,
+          "endpoints": 16544,
+          "junctions": 128974
+        },
+        "lineart_anime": {
+          "processing_ms": 37,
+          "edge_density_pct": 17.41,
+          "line_pixels": 650589,
+          "component_count": 10206,
+          "endpoints": 27364,
+          "junctions": 297498
+        },
+        "canny": {
+          "processing_ms": 642,
+          "edge_density_pct": 13.22,
+          "line_pixels": 493970,
+          "component_count": 2421,
+          "endpoints": 9420,
+          "junctions": 109013
+        }
+      }
+    },
+    {
+      "stem": "cityscape_train_station_fog_night",
+      "file": "test_imgs\\cityscape_train_station_fog_night.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1398,
+          "edge_density_pct": 0.4,
+          "line_pixels": 4299,
+          "component_count": 1775,
+          "endpoints": 859,
+          "junctions": 1110
+        },
+        "lineart_anime": {
+          "processing_ms": 11,
+          "edge_density_pct": 3.8,
+          "line_pixels": 41056,
+          "component_count": 424,
+          "endpoints": 1090,
+          "junctions": 16975
+        },
+        "canny": {
+          "processing_ms": 71,
+          "edge_density_pct": 2.99,
+          "line_pixels": 32269,
+          "component_count": 198,
+          "endpoints": 603,
+          "junctions": 3884
+        }
+      }
+    },
+    {
+      "stem": "coast_beach",
+      "file": "test_imgs\\coast_beach.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1364,
+          "edge_density_pct": 2.75,
+          "line_pixels": 13187,
+          "component_count": 8022,
+          "endpoints": 4626,
+          "junctions": 945
+        },
+        "lineart_anime": {
+          "processing_ms": 6,
+          "edge_density_pct": 20.47,
+          "line_pixels": 98246,
+          "component_count": 1941,
+          "endpoints": 6304,
+          "junctions": 58177
+        },
+        "canny": {
+          "processing_ms": 49,
+          "edge_density_pct": 14.83,
+          "line_pixels": 71180,
+          "component_count": 197,
+          "endpoints": 777,
+          "junctions": 31123
+        }
+      }
+    },
+    {
+      "stem": "coast_beach_footprints_aerial",
+      "file": "test_imgs\\coast_beach_footprints_aerial.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1428,
+          "edge_density_pct": 6.21,
+          "line_pixels": 67115,
+          "component_count": 20048,
+          "endpoints": 13064,
+          "junctions": 30098
+        },
+        "lineart_anime": {
+          "processing_ms": 14,
+          "edge_density_pct": 27.53,
+          "line_pixels": 297316,
+          "component_count": 6321,
+          "endpoints": 17933,
+          "junctions": 180950
+        },
+        "canny": {
+          "processing_ms": 242,
+          "edge_density_pct": 20.15,
+          "line_pixels": 217637,
+          "component_count": 774,
+          "endpoints": 3237,
+          "junctions": 87078
+        }
+      }
+    },
+    {
+      "stem": "coast_wooden_deck_pier",
+      "file": "test_imgs\\coast_wooden_deck_pier.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1371,
+          "edge_density_pct": 0.52,
+          "line_pixels": 5654,
+          "component_count": 2418,
+          "endpoints": 1284,
+          "junctions": 1654
+        },
+        "lineart_anime": {
+          "processing_ms": 13,
+          "edge_density_pct": 6.14,
+          "line_pixels": 66356,
+          "component_count": 1015,
+          "endpoints": 2477,
+          "junctions": 14675
+        },
+        "canny": {
+          "processing_ms": 90,
+          "edge_density_pct": 5.31,
+          "line_pixels": 57390,
+          "component_count": 298,
+          "endpoints": 1066,
+          "junctions": 7361
+        }
+      }
+    },
+    {
+      "stem": "complex_nature",
+      "file": "test_imgs\\complex_nature.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1513,
+          "edge_density_pct": 0.46,
+          "line_pixels": 4429,
+          "component_count": 3464,
+          "endpoints": 1299,
+          "junctions": 41
+        },
+        "lineart_anime": {
+          "processing_ms": 10,
+          "edge_density_pct": 8.58,
+          "line_pixels": 82382,
+          "component_count": 287,
+          "endpoints": 569,
+          "junctions": 18472
+        },
+        "canny": {
+          "processing_ms": 42,
+          "edge_density_pct": 7.79,
+          "line_pixels": 74769,
+          "component_count": 152,
+          "endpoints": 417,
+          "junctions": 3419
+        }
+      }
+    },
+    {
+      "stem": "indoor_1",
+      "file": "test_imgs\\indoor_1.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1429,
+          "edge_density_pct": 2.99,
+          "line_pixels": 23488,
+          "component_count": 9118,
+          "endpoints": 5654,
+          "junctions": 6386
+        },
+        "lineart_anime": {
+          "processing_ms": 9,
+          "edge_density_pct": 16.85,
+          "line_pixels": 132516,
+          "component_count": 1999,
+          "endpoints": 5402,
+          "junctions": 63345
+        },
+        "canny": {
+          "processing_ms": 107,
+          "edge_density_pct": 12.9,
+          "line_pixels": 101476,
+          "component_count": 566,
+          "endpoints": 1981,
+          "junctions": 19460
+        }
+      }
+    },
+    {
+      "stem": "indoor_2",
+      "file": "test_imgs\\indoor_2.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1349,
+          "edge_density_pct": 1.28,
+          "line_pixels": 10093,
+          "component_count": 5229,
+          "endpoints": 2942,
+          "junctions": 1714
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 11.57,
+          "line_pixels": 91021,
+          "component_count": 1571,
+          "endpoints": 5290,
+          "junctions": 54910
+        },
+        "canny": {
+          "processing_ms": 88,
+          "edge_density_pct": 8.43,
+          "line_pixels": 66312,
+          "component_count": 283,
+          "endpoints": 1226,
+          "junctions": 22413
+        }
+      }
+    },
+    {
+      "stem": "indoor_3",
+      "file": "test_imgs\\indoor_3.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1386,
+          "edge_density_pct": 1.82,
+          "line_pixels": 14331,
+          "component_count": 4578,
+          "endpoints": 2549,
+          "junctions": 5890
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 13.67,
+          "line_pixels": 107535,
+          "component_count": 1552,
+          "endpoints": 4819,
+          "junctions": 64688
+        },
+        "canny": {
+          "processing_ms": 97,
+          "edge_density_pct": 9.93,
+          "line_pixels": 78101,
+          "component_count": 793,
+          "endpoints": 1748,
+          "junctions": 17897
+        }
+      }
+    },
+    {
+      "stem": "indoor_church_interior_pews",
+      "file": "test_imgs\\indoor_church_interior_pews.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1235,
+          "edge_density_pct": 1.7,
+          "line_pixels": 18351,
+          "component_count": 4699,
+          "endpoints": 2700,
+          "junctions": 8897
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 9.62,
+          "line_pixels": 103879,
+          "component_count": 1464,
+          "endpoints": 3726,
+          "junctions": 44564
+        },
+        "canny": {
+          "processing_ms": 60,
+          "edge_density_pct": 7.57,
+          "line_pixels": 81721,
+          "component_count": 658,
+          "endpoints": 2159,
+          "junctions": 11805
+        }
+      }
+    },
+    {
+      "stem": "indoor_desk_smartphone",
+      "file": "test_imgs\\indoor_desk_smartphone.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 714,
+          "edge_density_pct": 0.17,
+          "line_pixels": 1827,
+          "component_count": 706,
+          "endpoints": 330,
+          "junctions": 604
+        },
+        "lineart_anime": {
+          "processing_ms": 5,
+          "edge_density_pct": 1.28,
+          "line_pixels": 13812,
+          "component_count": 141,
+          "endpoints": 266,
+          "junctions": 3474
+        },
+        "canny": {
+          "processing_ms": 18,
+          "edge_density_pct": 1.13,
+          "line_pixels": 12207,
+          "component_count": 100,
+          "endpoints": 229,
+          "junctions": 408
+        }
+      }
+    },
+    {
+      "stem": "indoor_tea_bowl_overhead",
+      "file": "test_imgs\\indoor_tea_bowl_overhead.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 698,
+          "edge_density_pct": 0.06,
+          "line_pixels": 445,
+          "component_count": 282,
+          "endpoints": 114,
+          "junctions": 64
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 1.13,
+          "line_pixels": 8906,
+          "component_count": 117,
+          "endpoints": 222,
+          "junctions": 5173
+        },
+        "canny": {
+          "processing_ms": 11,
+          "edge_density_pct": 0.86,
+          "line_pixels": 6761,
+          "component_count": 48,
+          "endpoints": 147,
+          "junctions": 646
+        }
+      }
+    },
+    {
+      "stem": "landmark_arc_de_triomphe_bw",
+      "file": "test_imgs\\landmark_arc_de_triomphe_bw.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 721,
+          "edge_density_pct": 0.88,
+          "line_pixels": 8466,
+          "component_count": 4404,
+          "endpoints": 2077,
+          "junctions": 1648
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 8.18,
+          "line_pixels": 78556,
+          "component_count": 1048,
+          "endpoints": 2852,
+          "junctions": 48037
+        },
+        "canny": {
+          "processing_ms": 25,
+          "edge_density_pct": 6.3,
+          "line_pixels": 60474,
+          "component_count": 173,
+          "endpoints": 703,
+          "junctions": 17997
+        }
+      }
+    },
+    {
+      "stem": "landscape_forest",
+      "file": "test_imgs\\landscape_forest.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 664,
+          "edge_density_pct": 0.96,
+          "line_pixels": 4588,
+          "component_count": 2742,
+          "endpoints": 1876,
+          "junctions": 238
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 12.14,
+          "line_pixels": 58262,
+          "component_count": 1248,
+          "endpoints": 3798,
+          "junctions": 28532
+        },
+        "canny": {
+          "processing_ms": 19,
+          "edge_density_pct": 8.76,
+          "line_pixels": 42025,
+          "component_count": 126,
+          "endpoints": 618,
+          "junctions": 14182
+        }
+      }
+    },
+    {
+      "stem": "landscape_lake",
+      "file": "test_imgs\\landscape_lake.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 672,
+          "edge_density_pct": 3.1,
+          "line_pixels": 14874,
+          "component_count": 7121,
+          "endpoints": 4469,
+          "junctions": 2628
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 21.93,
+          "line_pixels": 105265,
+          "component_count": 1911,
+          "endpoints": 6286,
+          "junctions": 58705
+        },
+        "canny": {
+          "processing_ms": 34,
+          "edge_density_pct": 15.83,
+          "line_pixels": 75971,
+          "component_count": 363,
+          "endpoints": 1302,
+          "junctions": 26630
+        }
+      }
+    },
+    {
+      "stem": "landscape_meadow_path_treeline",
+      "file": "test_imgs\\landscape_meadow_path_treeline.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 735,
+          "edge_density_pct": 0.79,
+          "line_pixels": 8514,
+          "component_count": 5767,
+          "endpoints": 2144,
+          "junctions": 870
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 20.64,
+          "line_pixels": 222902,
+          "component_count": 3427,
+          "endpoints": 12554,
+          "junctions": 123276
+        },
+        "canny": {
+          "processing_ms": 84,
+          "edge_density_pct": 15.24,
+          "line_pixels": 164618,
+          "component_count": 507,
+          "endpoints": 3162,
+          "junctions": 50764
+        }
+      }
+    },
+    {
+      "stem": "landscape_mountain",
+      "file": "test_imgs\\landscape_mountain.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 699,
+          "edge_density_pct": 0.18,
+          "line_pixels": 844,
+          "component_count": 591,
+          "endpoints": 273,
+          "junctions": 17
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 3.98,
+          "line_pixels": 19118,
+          "component_count": 378,
+          "endpoints": 889,
+          "junctions": 8854
+        },
+        "canny": {
+          "processing_ms": 14,
+          "edge_density_pct": 3.03,
+          "line_pixels": 14545,
+          "component_count": 178,
+          "endpoints": 508,
+          "junctions": 2362
+        }
+      }
+    },
+    {
+      "stem": "landscape_mountain_cliff_fog",
+      "file": "test_imgs\\landscape_mountain_cliff_fog.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 729,
+          "edge_density_pct": 2.74,
+          "line_pixels": 29622,
+          "component_count": 8263,
+          "endpoints": 6127,
+          "junctions": 12750
+        },
+        "lineart_anime": {
+          "processing_ms": 8,
+          "edge_density_pct": 9.94,
+          "line_pixels": 107352,
+          "component_count": 2186,
+          "endpoints": 6959,
+          "junctions": 65303
+        },
+        "canny": {
+          "processing_ms": 65,
+          "edge_density_pct": 7.02,
+          "line_pixels": 75820,
+          "component_count": 308,
+          "endpoints": 1484,
+          "junctions": 27887
+        }
+      }
+    },
+    {
+      "stem": "landscape_snowy_mountain_peaks",
+      "file": "test_imgs\\landscape_snowy_mountain_peaks.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 773,
+          "edge_density_pct": 5.46,
+          "line_pixels": 26211,
+          "component_count": 7754,
+          "endpoints": 6091,
+          "junctions": 9554
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 14.11,
+          "line_pixels": 67717,
+          "component_count": 1778,
+          "endpoints": 3558,
+          "junctions": 42852
+        },
+        "canny": {
+          "processing_ms": 26,
+          "edge_density_pct": 9.5,
+          "line_pixels": 45619,
+          "component_count": 601,
+          "endpoints": 1394,
+          "junctions": 12266
+        }
+      }
+    },
+    {
+      "stem": "landscape_wanaka_tree_lake",
+      "file": "test_imgs\\landscape_wanaka_tree_lake.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 698,
+          "edge_density_pct": 0.61,
+          "line_pixels": 6598,
+          "component_count": 3697,
+          "endpoints": 1882,
+          "junctions": 772
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 8.24,
+          "line_pixels": 89014,
+          "component_count": 1530,
+          "endpoints": 3798,
+          "junctions": 23892
+        },
+        "canny": {
+          "processing_ms": 45,
+          "edge_density_pct": 6.71,
+          "line_pixels": 72476,
+          "component_count": 383,
+          "endpoints": 1602,
+          "junctions": 11155
+        }
+      }
+    },
+    {
+      "stem": "lorem_1024",
+      "file": "test_imgs\\lorem_1024.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 709,
+          "edge_density_pct": 2.78,
+          "line_pixels": 13325,
+          "component_count": 8003,
+          "endpoints": 4242,
+          "junctions": 1229
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 29.69,
+          "line_pixels": 142534,
+          "component_count": 3158,
+          "endpoints": 9338,
+          "junctions": 76905
+        },
+        "canny": {
+          "processing_ms": 46,
+          "edge_density_pct": 21.86,
+          "line_pixels": 104942,
+          "component_count": 536,
+          "endpoints": 2143,
+          "junctions": 35855
+        }
+      }
+    },
+    {
+      "stem": "lorem_111",
+      "file": "test_imgs\\lorem_111.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 674,
+          "edge_density_pct": 7.05,
+          "line_pixels": 33861,
+          "component_count": 14442,
+          "endpoints": 10581,
+          "junctions": 6923
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 26.92,
+          "line_pixels": 129213,
+          "component_count": 2670,
+          "endpoints": 8204,
+          "junctions": 82775
+        },
+        "canny": {
+          "processing_ms": 35,
+          "edge_density_pct": 19.33,
+          "line_pixels": 92801,
+          "component_count": 317,
+          "endpoints": 1319,
+          "junctions": 39394
+        }
+      }
+    },
+    {
+      "stem": "lorem_127",
+      "file": "test_imgs\\lorem_127.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 692,
+          "edge_density_pct": 0.23,
+          "line_pixels": 1088,
+          "component_count": 749,
+          "endpoints": 325,
+          "junctions": 66
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 7.06,
+          "line_pixels": 33869,
+          "component_count": 527,
+          "endpoints": 1305,
+          "junctions": 15957
+        },
+        "canny": {
+          "processing_ms": 18,
+          "edge_density_pct": 5.55,
+          "line_pixels": 26660,
+          "component_count": 249,
+          "endpoints": 696,
+          "junctions": 4101
+        }
+      }
+    },
+    {
+      "stem": "lorem_222",
+      "file": "test_imgs\\lorem_222.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 702,
+          "edge_density_pct": 0.82,
+          "line_pixels": 3938,
+          "component_count": 2810,
+          "endpoints": 1170,
+          "junctions": 181
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 15.36,
+          "line_pixels": 73732,
+          "component_count": 1700,
+          "endpoints": 4231,
+          "junctions": 44846
+        },
+        "canny": {
+          "processing_ms": 36,
+          "edge_density_pct": 10.53,
+          "line_pixels": 50530,
+          "component_count": 621,
+          "endpoints": 1541,
+          "junctions": 15003
+        }
+      }
+    },
+    {
+      "stem": "lorem_256",
+      "file": "test_imgs\\lorem_256.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 788,
+          "edge_density_pct": 1.79,
+          "line_pixels": 8585,
+          "component_count": 3403,
+          "endpoints": 2040,
+          "junctions": 2139
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 12.21,
+          "line_pixels": 58585,
+          "component_count": 816,
+          "endpoints": 2587,
+          "junctions": 24569
+        },
+        "canny": {
+          "processing_ms": 20,
+          "edge_density_pct": 8.85,
+          "line_pixels": 42457,
+          "component_count": 182,
+          "endpoints": 572,
+          "junctions": 10905
+        }
+      }
+    },
+    {
+      "stem": "lorem_333",
+      "file": "test_imgs\\lorem_333.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 744,
+          "edge_density_pct": 0.89,
+          "line_pixels": 4260,
+          "component_count": 2223,
+          "endpoints": 1509,
+          "junctions": 530
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 7.84,
+          "line_pixels": 37636,
+          "component_count": 777,
+          "endpoints": 2051,
+          "junctions": 19930
+        },
+        "canny": {
+          "processing_ms": 21,
+          "edge_density_pct": 5.83,
+          "line_pixels": 27961,
+          "component_count": 198,
+          "endpoints": 685,
+          "junctions": 7491
+        }
+      }
+    },
+    {
+      "stem": "lorem_42",
+      "file": "test_imgs\\lorem_42.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 775,
+          "edge_density_pct": 2.08,
+          "line_pixels": 9968,
+          "component_count": 5606,
+          "endpoints": 3294,
+          "junctions": 1177
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 20.03,
+          "line_pixels": 96157,
+          "component_count": 1853,
+          "endpoints": 5854,
+          "junctions": 58271
+        },
+        "canny": {
+          "processing_ms": 32,
+          "edge_density_pct": 14.38,
+          "line_pixels": 69045,
+          "component_count": 386,
+          "endpoints": 1436,
+          "junctions": 23709
+        }
+      }
+    },
+    {
+      "stem": "lorem_444",
+      "file": "test_imgs\\lorem_444.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 705,
+          "edge_density_pct": 2.08,
+          "line_pixels": 9991,
+          "component_count": 5181,
+          "endpoints": 2562,
+          "junctions": 1063
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 20.0,
+          "line_pixels": 95986,
+          "component_count": 1748,
+          "endpoints": 5340,
+          "junctions": 42080
+        },
+        "canny": {
+          "processing_ms": 32,
+          "edge_density_pct": 15.15,
+          "line_pixels": 72722,
+          "component_count": 318,
+          "endpoints": 1434,
+          "junctions": 20170
+        }
+      }
+    },
+    {
+      "stem": "lorem_512",
+      "file": "test_imgs\\lorem_512.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 695,
+          "edge_density_pct": 0.3,
+          "line_pixels": 1456,
+          "component_count": 662,
+          "endpoints": 314,
+          "junctions": 91
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 4.28,
+          "line_pixels": 20557,
+          "component_count": 238,
+          "endpoints": 565,
+          "junctions": 8417
+        },
+        "canny": {
+          "processing_ms": 11,
+          "edge_density_pct": 3.21,
+          "line_pixels": 15403,
+          "component_count": 95,
+          "endpoints": 279,
+          "junctions": 1982
+        }
+      }
+    },
+    {
+      "stem": "lorem_555",
+      "file": "test_imgs\\lorem_555.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 677,
+          "edge_density_pct": 0.66,
+          "line_pixels": 3161,
+          "component_count": 1709,
+          "endpoints": 852,
+          "junctions": 523
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 18.09,
+          "line_pixels": 86814,
+          "component_count": 1619,
+          "endpoints": 4301,
+          "junctions": 53579
+        },
+        "canny": {
+          "processing_ms": 33,
+          "edge_density_pct": 13.27,
+          "line_pixels": 63680,
+          "component_count": 488,
+          "endpoints": 1619,
+          "junctions": 16249
+        }
+      }
+    },
+    {
+      "stem": "lorem_666",
+      "file": "test_imgs\\lorem_666.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 696,
+          "edge_density_pct": 0.01,
+          "line_pixels": 64,
+          "component_count": 40,
+          "endpoints": 26,
+          "junctions": 0
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 0.17,
+          "line_pixels": 815,
+          "component_count": 3,
+          "endpoints": 6,
+          "junctions": 56
+        },
+        "canny": {
+          "processing_ms": 4,
+          "edge_density_pct": 0.16,
+          "line_pixels": 789,
+          "component_count": 3,
+          "endpoints": 4,
+          "junctions": 0
+        }
+      }
+    },
+    {
+      "stem": "lorem_768",
+      "file": "test_imgs\\lorem_768.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 662,
+          "edge_density_pct": 0.05,
+          "line_pixels": 217,
+          "component_count": 141,
+          "endpoints": 53,
+          "junctions": 19
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 1.31,
+          "line_pixels": 6268,
+          "component_count": 83,
+          "endpoints": 168,
+          "junctions": 3699
+        },
+        "canny": {
+          "processing_ms": 7,
+          "edge_density_pct": 0.98,
+          "line_pixels": 4713,
+          "component_count": 41,
+          "endpoints": 122,
+          "junctions": 479
+        }
+      }
+    },
+    {
+      "stem": "lorem_777",
+      "file": "test_imgs\\lorem_777.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 673,
+          "edge_density_pct": 0.0,
+          "line_pixels": 3,
+          "component_count": 3,
+          "endpoints": 0,
+          "junctions": 0
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 0.14,
+          "line_pixels": 661,
+          "component_count": 8,
+          "endpoints": 15,
+          "junctions": 310
+        },
+        "canny": {
+          "processing_ms": 3,
+          "edge_density_pct": 0.11,
+          "line_pixels": 545,
+          "component_count": 6,
+          "endpoints": 13,
+          "junctions": 15
+        }
+      }
+    },
+    {
+      "stem": "lorem_888",
+      "file": "test_imgs\\lorem_888.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 668,
+          "edge_density_pct": 0.3,
+          "line_pixels": 1429,
+          "component_count": 888,
+          "endpoints": 484,
+          "junctions": 84
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 11.78,
+          "line_pixels": 56564,
+          "component_count": 774,
+          "endpoints": 3187,
+          "junctions": 33011
+        },
+        "canny": {
+          "processing_ms": 22,
+          "edge_density_pct": 8.55,
+          "line_pixels": 41060,
+          "component_count": 153,
+          "endpoints": 833,
+          "junctions": 13171
+        }
+      }
+    },
+    {
+      "stem": "lorem_999",
+      "file": "test_imgs\\lorem_999.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 692,
+          "edge_density_pct": 1.88,
+          "line_pixels": 9021,
+          "component_count": 5797,
+          "endpoints": 3105,
+          "junctions": 561
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 18.12,
+          "line_pixels": 86966,
+          "component_count": 1762,
+          "endpoints": 5495,
+          "junctions": 51740
+        },
+        "canny": {
+          "processing_ms": 27,
+          "edge_density_pct": 13.3,
+          "line_pixels": 63824,
+          "component_count": 222,
+          "endpoints": 969,
+          "junctions": 25385
+        }
+      }
+    },
+    {
+      "stem": "macro_phonograph_cartridge",
+      "file": "test_imgs\\macro_phonograph_cartridge.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 700,
+          "edge_density_pct": 0.07,
+          "line_pixels": 788,
+          "component_count": 318,
+          "endpoints": 194,
+          "junctions": 210
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 0.5,
+          "line_pixels": 5377,
+          "component_count": 36,
+          "endpoints": 78,
+          "junctions": 1295
+        },
+        "canny": {
+          "processing_ms": 18,
+          "edge_density_pct": 0.44,
+          "line_pixels": 4801,
+          "component_count": 28,
+          "endpoints": 68,
+          "junctions": 83
+        }
+      }
+    },
+    {
+      "stem": "minimal_desert",
+      "file": "test_imgs\\minimal_desert.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 669,
+          "edge_density_pct": 0.1,
+          "line_pixels": 481,
+          "component_count": 372,
+          "endpoints": 131,
+          "junctions": 13
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 4.68,
+          "line_pixels": 22457,
+          "component_count": 404,
+          "endpoints": 821,
+          "junctions": 11709
+        },
+        "canny": {
+          "processing_ms": 12,
+          "edge_density_pct": 3.55,
+          "line_pixels": 17039,
+          "component_count": 201,
+          "endpoints": 545,
+          "junctions": 2382
+        }
+      }
+    },
+    {
+      "stem": "minimal_fog",
+      "file": "test_imgs\\minimal_fog.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 714,
+          "edge_density_pct": 0.69,
+          "line_pixels": 3301,
+          "component_count": 2017,
+          "endpoints": 1010,
+          "junctions": 229
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 7.67,
+          "line_pixels": 36795,
+          "component_count": 498,
+          "endpoints": 830,
+          "junctions": 31124
+        },
+        "canny": {
+          "processing_ms": 10,
+          "edge_density_pct": 4.98,
+          "line_pixels": 23909,
+          "component_count": 215,
+          "endpoints": 397,
+          "junctions": 2498
+        }
+      }
+    },
+    {
+      "stem": "minimal_yellow_wall_person",
+      "file": "test_imgs\\minimal_yellow_wall_person.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 694,
+          "edge_density_pct": 0.07,
+          "line_pixels": 534,
+          "component_count": 233,
+          "endpoints": 132,
+          "junctions": 133
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 1.03,
+          "line_pixels": 8061,
+          "component_count": 62,
+          "endpoints": 181,
+          "junctions": 1367
+        },
+        "canny": {
+          "processing_ms": 11,
+          "edge_density_pct": 0.91,
+          "line_pixels": 7132,
+          "component_count": 23,
+          "endpoints": 97,
+          "junctions": 600
+        }
+      }
+    },
+    {
+      "stem": "nature_forest_canopy_aerial",
+      "file": "test_imgs\\nature_forest_canopy_aerial.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 737,
+          "edge_density_pct": 0.65,
+          "line_pixels": 7063,
+          "component_count": 6135,
+          "endpoints": 1462,
+          "junctions": 17
+        },
+        "lineart_anime": {
+          "processing_ms": 7,
+          "edge_density_pct": 31.18,
+          "line_pixels": 336720,
+          "component_count": 5529,
+          "endpoints": 20040,
+          "junctions": 218712
+        },
+        "canny": {
+          "processing_ms": 113,
+          "edge_density_pct": 22.74,
+          "line_pixels": 245613,
+          "component_count": 824,
+          "endpoints": 4178,
+          "junctions": 91938
+        }
+      }
+    },
+    {
+      "stem": "night_1",
+      "file": "test_imgs\\night_1.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 684,
+          "edge_density_pct": 0.94,
+          "line_pixels": 7421,
+          "component_count": 4808,
+          "endpoints": 2310,
+          "junctions": 559
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 12.72,
+          "line_pixels": 100042,
+          "component_count": 1704,
+          "endpoints": 5419,
+          "junctions": 64489
+        },
+        "canny": {
+          "processing_ms": 44,
+          "edge_density_pct": 8.9,
+          "line_pixels": 70016,
+          "component_count": 512,
+          "endpoints": 1941,
+          "junctions": 19677
+        }
+      }
+    },
+    {
+      "stem": "night_2",
+      "file": "test_imgs\\night_2.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 688,
+          "edge_density_pct": 0.43,
+          "line_pixels": 3389,
+          "component_count": 2398,
+          "endpoints": 937,
+          "junctions": 172
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 13.69,
+          "line_pixels": 107689,
+          "component_count": 1530,
+          "endpoints": 5774,
+          "junctions": 65244
+        },
+        "canny": {
+          "processing_ms": 41,
+          "edge_density_pct": 9.92,
+          "line_pixels": 78006,
+          "component_count": 319,
+          "endpoints": 1537,
+          "junctions": 25727
+        }
+      }
+    },
+    {
+      "stem": "night_3",
+      "file": "test_imgs\\night_3.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 737,
+          "edge_density_pct": 0.77,
+          "line_pixels": 6054,
+          "component_count": 2807,
+          "endpoints": 1414,
+          "junctions": 1544
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 6.93,
+          "line_pixels": 54469,
+          "component_count": 635,
+          "endpoints": 1411,
+          "junctions": 30077
+        },
+        "canny": {
+          "processing_ms": 21,
+          "edge_density_pct": 5.2,
+          "line_pixels": 40933,
+          "component_count": 312,
+          "endpoints": 875,
+          "junctions": 4102
+        }
+      }
+    },
+    {
+      "stem": "night_4",
+      "file": "test_imgs\\night_4.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 719,
+          "edge_density_pct": 0.19,
+          "line_pixels": 1455,
+          "component_count": 974,
+          "endpoints": 461,
+          "junctions": 64
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 3.82,
+          "line_pixels": 30012,
+          "component_count": 296,
+          "endpoints": 750,
+          "junctions": 21364
+        },
+        "canny": {
+          "processing_ms": 18,
+          "edge_density_pct": 2.69,
+          "line_pixels": 21143,
+          "component_count": 129,
+          "endpoints": 481,
+          "junctions": 2844
+        }
+      }
+    },
+    {
+      "stem": "night_5",
+      "file": "test_imgs\\night_5.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 822,
+          "edge_density_pct": 0.07,
+          "line_pixels": 566,
+          "component_count": 482,
+          "endpoints": 114,
+          "junctions": 4
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 8.81,
+          "line_pixels": 69322,
+          "component_count": 975,
+          "endpoints": 3439,
+          "junctions": 39735
+        },
+        "canny": {
+          "processing_ms": 40,
+          "edge_density_pct": 6.52,
+          "line_pixels": 51306,
+          "component_count": 252,
+          "endpoints": 1107,
+          "junctions": 15428
+        }
+      }
+    },
+    {
+      "stem": "night_bokeh_lights_abstract",
+      "file": "test_imgs\\night_bokeh_lights_abstract.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 725,
+          "edge_density_pct": 0.02,
+          "line_pixels": 194,
+          "component_count": 162,
+          "endpoints": 52,
+          "junctions": 0
+        },
+        "lineart_anime": {
+          "processing_ms": 5,
+          "edge_density_pct": 0.55,
+          "line_pixels": 5938,
+          "component_count": 164,
+          "endpoints": 206,
+          "junctions": 3138
+        },
+        "canny": {
+          "processing_ms": 22,
+          "edge_density_pct": 0.42,
+          "line_pixels": 4560,
+          "component_count": 103,
+          "endpoints": 195,
+          "junctions": 95
+        }
+      }
+    },
+    {
+      "stem": "picsum_36",
+      "file": "test_imgs\\picsum_36.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 774,
+          "edge_density_pct": 2.41,
+          "line_pixels": 18960,
+          "component_count": 10045,
+          "endpoints": 6052,
+          "junctions": 2774
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 17.65,
+          "line_pixels": 138770,
+          "component_count": 2950,
+          "endpoints": 8631,
+          "junctions": 82810
+        },
+        "canny": {
+          "processing_ms": 48,
+          "edge_density_pct": 12.88,
+          "line_pixels": 101303,
+          "component_count": 423,
+          "endpoints": 1650,
+          "junctions": 39204
+        }
+      }
+    },
+    {
+      "stem": "picsum_37",
+      "file": "test_imgs\\picsum_37.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 689,
+          "edge_density_pct": 2.33,
+          "line_pixels": 18347,
+          "component_count": 5992,
+          "endpoints": 4014,
+          "junctions": 6175
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 11.65,
+          "line_pixels": 91656,
+          "component_count": 1254,
+          "endpoints": 4078,
+          "junctions": 39992
+        },
+        "canny": {
+          "processing_ms": 28,
+          "edge_density_pct": 8.66,
+          "line_pixels": 68114,
+          "component_count": 269,
+          "endpoints": 859,
+          "junctions": 18413
+        }
+      }
+    },
+    {
+      "stem": "picsum_38",
+      "file": "test_imgs\\picsum_38.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 682,
+          "edge_density_pct": 0.25,
+          "line_pixels": 1930,
+          "component_count": 1337,
+          "endpoints": 661,
+          "junctions": 45
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 4.43,
+          "line_pixels": 34876,
+          "component_count": 569,
+          "endpoints": 1363,
+          "junctions": 6768
+        },
+        "canny": {
+          "processing_ms": 19,
+          "edge_density_pct": 3.8,
+          "line_pixels": 29890,
+          "component_count": 177,
+          "endpoints": 634,
+          "junctions": 3554
+        }
+      }
+    },
+    {
+      "stem": "picsum_39",
+      "file": "test_imgs\\picsum_39.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 682,
+          "edge_density_pct": 0.46,
+          "line_pixels": 3632,
+          "component_count": 913,
+          "endpoints": 688,
+          "junctions": 1375
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 1.66,
+          "line_pixels": 13092,
+          "component_count": 106,
+          "endpoints": 158,
+          "junctions": 3830
+        },
+        "canny": {
+          "processing_ms": 11,
+          "edge_density_pct": 1.45,
+          "line_pixels": 11428,
+          "component_count": 67,
+          "endpoints": 83,
+          "junctions": 603
+        }
+      }
+    },
+    {
+      "stem": "picsum_40",
+      "file": "test_imgs\\picsum_40.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 701,
+          "edge_density_pct": 0.34,
+          "line_pixels": 2686,
+          "component_count": 1423,
+          "endpoints": 766,
+          "junctions": 322
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 4.82,
+          "line_pixels": 37869,
+          "component_count": 545,
+          "endpoints": 1341,
+          "junctions": 16125
+        },
+        "canny": {
+          "processing_ms": 19,
+          "edge_density_pct": 3.78,
+          "line_pixels": 29723,
+          "component_count": 270,
+          "endpoints": 683,
+          "junctions": 4264
+        }
+      }
+    },
+    {
+      "stem": "picsum_41",
+      "file": "test_imgs\\picsum_41.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 670,
+          "edge_density_pct": 0.4,
+          "line_pixels": 3141,
+          "component_count": 1649,
+          "endpoints": 635,
+          "junctions": 796
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 9.98,
+          "line_pixels": 78457,
+          "component_count": 1064,
+          "endpoints": 4514,
+          "junctions": 47705
+        },
+        "canny": {
+          "processing_ms": 35,
+          "edge_density_pct": 7.15,
+          "line_pixels": 56237,
+          "component_count": 222,
+          "endpoints": 896,
+          "junctions": 21229
+        }
+      }
+    },
+    {
+      "stem": "picsum_42",
+      "file": "test_imgs\\picsum_42.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 714,
+          "edge_density_pct": 3.13,
+          "line_pixels": 24626,
+          "component_count": 9243,
+          "endpoints": 7276,
+          "junctions": 6323
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 13.36,
+          "line_pixels": 105046,
+          "component_count": 2222,
+          "endpoints": 6635,
+          "junctions": 51675
+        },
+        "canny": {
+          "processing_ms": 33,
+          "edge_density_pct": 10.16,
+          "line_pixels": 79909,
+          "component_count": 231,
+          "endpoints": 951,
+          "junctions": 32329
+        }
+      }
+    },
+    {
+      "stem": "picsum_43",
+      "file": "test_imgs\\picsum_43.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 697,
+          "edge_density_pct": 1.48,
+          "line_pixels": 11630,
+          "component_count": 9277,
+          "endpoints": 3102,
+          "junctions": 215
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 28.86,
+          "line_pixels": 226944,
+          "component_count": 4492,
+          "endpoints": 14658,
+          "junctions": 95218
+        },
+        "canny": {
+          "processing_ms": 58,
+          "edge_density_pct": 22.64,
+          "line_pixels": 178011,
+          "component_count": 289,
+          "endpoints": 2154,
+          "junctions": 65416
+        }
+      }
+    },
+    {
+      "stem": "picsum_44",
+      "file": "test_imgs\\picsum_44.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 716,
+          "edge_density_pct": 0.24,
+          "line_pixels": 1916,
+          "component_count": 1008,
+          "endpoints": 589,
+          "junctions": 279
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 3.13,
+          "line_pixels": 24641,
+          "component_count": 1019,
+          "endpoints": 1422,
+          "junctions": 13315
+        },
+        "canny": {
+          "processing_ms": 25,
+          "edge_density_pct": 1.77,
+          "line_pixels": 13930,
+          "component_count": 833,
+          "endpoints": 1343,
+          "junctions": 2318
+        }
+      }
+    },
+    {
+      "stem": "picsum_45",
+      "file": "test_imgs\\picsum_45.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 681,
+          "edge_density_pct": 0.57,
+          "line_pixels": 4497,
+          "component_count": 2171,
+          "endpoints": 1157,
+          "junctions": 917
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 9.03,
+          "line_pixels": 70980,
+          "component_count": 1581,
+          "endpoints": 2867,
+          "junctions": 37129
+        },
+        "canny": {
+          "processing_ms": 38,
+          "edge_density_pct": 6.93,
+          "line_pixels": 54520,
+          "component_count": 992,
+          "endpoints": 2290,
+          "junctions": 3622
+        }
+      }
+    },
+    {
+      "stem": "picsum_46",
+      "file": "test_imgs\\picsum_46.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 749,
+          "edge_density_pct": 0.11,
+          "line_pixels": 887,
+          "component_count": 460,
+          "endpoints": 242,
+          "junctions": 73
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 1.19,
+          "line_pixels": 9325,
+          "component_count": 125,
+          "endpoints": 236,
+          "junctions": 4166
+        },
+        "canny": {
+          "processing_ms": 11,
+          "edge_density_pct": 0.96,
+          "line_pixels": 7585,
+          "component_count": 80,
+          "endpoints": 200,
+          "junctions": 620
+        }
+      }
+    },
+    {
+      "stem": "picsum_47",
+      "file": "test_imgs\\picsum_47.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 697,
+          "edge_density_pct": 0.33,
+          "line_pixels": 2603,
+          "component_count": 1696,
+          "endpoints": 821,
+          "junctions": 178
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 2.48,
+          "line_pixels": 19538,
+          "component_count": 1020,
+          "endpoints": 1108,
+          "junctions": 11388
+        },
+        "canny": {
+          "processing_ms": 19,
+          "edge_density_pct": 1.19,
+          "line_pixels": 9337,
+          "component_count": 703,
+          "endpoints": 1059,
+          "junctions": 1604
+        }
+      }
+    },
+    {
+      "stem": "picsum_48",
+      "file": "test_imgs\\picsum_48.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 697,
+          "edge_density_pct": 3.1,
+          "line_pixels": 24410,
+          "component_count": 8217,
+          "endpoints": 6599,
+          "junctions": 6256
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 11.69,
+          "line_pixels": 91927,
+          "component_count": 1377,
+          "endpoints": 3807,
+          "junctions": 61681
+        },
+        "canny": {
+          "processing_ms": 29,
+          "edge_density_pct": 7.99,
+          "line_pixels": 62870,
+          "component_count": 181,
+          "endpoints": 826,
+          "junctions": 19907
+        }
+      }
+    },
+    {
+      "stem": "picsum_49",
+      "file": "test_imgs\\picsum_49.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 697,
+          "edge_density_pct": 0.59,
+          "line_pixels": 4671,
+          "component_count": 1962,
+          "endpoints": 1421,
+          "junctions": 1091
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 7.91,
+          "line_pixels": 62171,
+          "component_count": 1046,
+          "endpoints": 3488,
+          "junctions": 35047
+        },
+        "canny": {
+          "processing_ms": 30,
+          "edge_density_pct": 5.71,
+          "line_pixels": 44917,
+          "component_count": 288,
+          "endpoints": 1025,
+          "junctions": 14232
+        }
+      }
+    },
+    {
+      "stem": "picsum_50",
+      "file": "test_imgs\\picsum_50.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 682,
+          "edge_density_pct": 1.41,
+          "line_pixels": 11072,
+          "component_count": 3825,
+          "endpoints": 2431,
+          "junctions": 3672
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 7.34,
+          "line_pixels": 57704,
+          "component_count": 701,
+          "endpoints": 1622,
+          "junctions": 26080
+        },
+        "canny": {
+          "processing_ms": 23,
+          "edge_density_pct": 5.77,
+          "line_pixels": 45388,
+          "component_count": 299,
+          "endpoints": 779,
+          "junctions": 6681
+        }
+      }
+    },
+    {
+      "stem": "picsum_51",
+      "file": "test_imgs\\picsum_51.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 695,
+          "edge_density_pct": 6.69,
+          "line_pixels": 52577,
+          "component_count": 4970,
+          "endpoints": 3880,
+          "junctions": 25326
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 22.48,
+          "line_pixels": 176763,
+          "component_count": 2707,
+          "endpoints": 9355,
+          "junctions": 74126
+        },
+        "canny": {
+          "processing_ms": 56,
+          "edge_density_pct": 15.56,
+          "line_pixels": 122380,
+          "component_count": 369,
+          "endpoints": 1708,
+          "junctions": 37777
+        }
+      }
+    },
+    {
+      "stem": "picsum_52",
+      "file": "test_imgs\\picsum_52.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 745,
+          "edge_density_pct": 0.21,
+          "line_pixels": 1642,
+          "component_count": 1216,
+          "endpoints": 456,
+          "junctions": 42
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 6.28,
+          "line_pixels": 49354,
+          "component_count": 752,
+          "endpoints": 1632,
+          "junctions": 35074
+        },
+        "canny": {
+          "processing_ms": 33,
+          "edge_density_pct": 4.38,
+          "line_pixels": 34444,
+          "component_count": 393,
+          "endpoints": 1128,
+          "junctions": 5381
+        }
+      }
+    },
+    {
+      "stem": "picsum_53",
+      "file": "test_imgs\\picsum_53.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 748,
+          "edge_density_pct": 0.46,
+          "line_pixels": 3609,
+          "component_count": 2333,
+          "endpoints": 897,
+          "junctions": 394
+        },
+        "lineart_anime": {
+          "processing_ms": 5,
+          "edge_density_pct": 9.34,
+          "line_pixels": 73418,
+          "component_count": 1064,
+          "endpoints": 4373,
+          "junctions": 42978
+        },
+        "canny": {
+          "processing_ms": 36,
+          "edge_density_pct": 6.81,
+          "line_pixels": 53565,
+          "component_count": 156,
+          "endpoints": 770,
+          "junctions": 21044
+        }
+      }
+    },
+    {
+      "stem": "picsum_54",
+      "file": "test_imgs\\picsum_54.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 737,
+          "edge_density_pct": 0.38,
+          "line_pixels": 2974,
+          "component_count": 1467,
+          "endpoints": 756,
+          "junctions": 625
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 6.04,
+          "line_pixels": 47534,
+          "component_count": 906,
+          "endpoints": 1922,
+          "junctions": 27820
+        },
+        "canny": {
+          "processing_ms": 29,
+          "edge_density_pct": 4.44,
+          "line_pixels": 34882,
+          "component_count": 476,
+          "endpoints": 1036,
+          "junctions": 5677
+        }
+      }
+    },
+    {
+      "stem": "picsum_55",
+      "file": "test_imgs\\picsum_55.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 788,
+          "edge_density_pct": 1.6,
+          "line_pixels": 12605,
+          "component_count": 6376,
+          "endpoints": 3602,
+          "junctions": 2145
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 14.58,
+          "line_pixels": 114695,
+          "component_count": 2466,
+          "endpoints": 5618,
+          "junctions": 54605
+        },
+        "canny": {
+          "processing_ms": 47,
+          "edge_density_pct": 11.32,
+          "line_pixels": 89000,
+          "component_count": 763,
+          "endpoints": 2558,
+          "junctions": 17164
+        }
+      }
+    },
+    {
+      "stem": "picsum_56",
+      "file": "test_imgs\\picsum_56.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 726,
+          "edge_density_pct": 0.51,
+          "line_pixels": 4044,
+          "component_count": 2730,
+          "endpoints": 1119,
+          "junctions": 365
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 11.15,
+          "line_pixels": 87652,
+          "component_count": 1425,
+          "endpoints": 4399,
+          "junctions": 49065
+        },
+        "canny": {
+          "processing_ms": 37,
+          "edge_density_pct": 8.28,
+          "line_pixels": 65139,
+          "component_count": 399,
+          "endpoints": 1560,
+          "junctions": 17033
+        }
+      }
+    },
+    {
+      "stem": "picsum_57",
+      "file": "test_imgs\\picsum_57.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 754,
+          "edge_density_pct": 7.95,
+          "line_pixels": 62551,
+          "component_count": 12658,
+          "endpoints": 9572,
+          "junctions": 33710
+        },
+        "lineart_anime": {
+          "processing_ms": 5,
+          "edge_density_pct": 21.16,
+          "line_pixels": 166435,
+          "component_count": 3494,
+          "endpoints": 10042,
+          "junctions": 91359
+        },
+        "canny": {
+          "processing_ms": 59,
+          "edge_density_pct": 15.19,
+          "line_pixels": 119459,
+          "component_count": 481,
+          "endpoints": 1935,
+          "junctions": 42485
+        }
+      }
+    },
+    {
+      "stem": "picsum_58",
+      "file": "test_imgs\\picsum_58.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 688,
+          "edge_density_pct": 2.39,
+          "line_pixels": 18791,
+          "component_count": 8508,
+          "endpoints": 4921,
+          "junctions": 3642
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 14.86,
+          "line_pixels": 116843,
+          "component_count": 1925,
+          "endpoints": 4795,
+          "junctions": 38490
+        },
+        "canny": {
+          "processing_ms": 39,
+          "edge_density_pct": 12.0,
+          "line_pixels": 94333,
+          "component_count": 580,
+          "endpoints": 2021,
+          "junctions": 14858
+        }
+      }
+    },
+    {
+      "stem": "picsum_59",
+      "file": "test_imgs\\picsum_59.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 716,
+          "edge_density_pct": 0.65,
+          "line_pixels": 5074,
+          "component_count": 2617,
+          "endpoints": 1485,
+          "junctions": 827
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 6.14,
+          "line_pixels": 48312,
+          "component_count": 735,
+          "endpoints": 1886,
+          "junctions": 28943
+        },
+        "canny": {
+          "processing_ms": 24,
+          "edge_density_pct": 4.51,
+          "line_pixels": 35472,
+          "component_count": 204,
+          "endpoints": 839,
+          "junctions": 6962
+        }
+      }
+    },
+    {
+      "stem": "picsum_60",
+      "file": "test_imgs\\picsum_60.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 670,
+          "edge_density_pct": 0.1,
+          "line_pixels": 773,
+          "component_count": 364,
+          "endpoints": 246,
+          "junctions": 137
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 0.49,
+          "line_pixels": 3850,
+          "component_count": 37,
+          "endpoints": 67,
+          "junctions": 2371
+        },
+        "canny": {
+          "processing_ms": 8,
+          "edge_density_pct": 0.37,
+          "line_pixels": 2915,
+          "component_count": 23,
+          "endpoints": 53,
+          "junctions": 172
+        }
+      }
+    },
+    {
+      "stem": "picsum_61",
+      "file": "test_imgs\\picsum_61.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 674,
+          "edge_density_pct": 2.38,
+          "line_pixels": 18713,
+          "component_count": 6952,
+          "endpoints": 4752,
+          "junctions": 5121
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 11.81,
+          "line_pixels": 92842,
+          "component_count": 1807,
+          "endpoints": 4154,
+          "junctions": 39257
+        },
+        "canny": {
+          "processing_ms": 36,
+          "edge_density_pct": 9.11,
+          "line_pixels": 71674,
+          "component_count": 511,
+          "endpoints": 1561,
+          "junctions": 13988
+        }
+      }
+    },
+    {
+      "stem": "picsum_62",
+      "file": "test_imgs\\picsum_62.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 671,
+          "edge_density_pct": 0.45,
+          "line_pixels": 3573,
+          "component_count": 1533,
+          "endpoints": 957,
+          "junctions": 708
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 2.46,
+          "line_pixels": 19322,
+          "component_count": 410,
+          "endpoints": 742,
+          "junctions": 8116
+        },
+        "canny": {
+          "processing_ms": 15,
+          "edge_density_pct": 1.85,
+          "line_pixels": 14556,
+          "component_count": 266,
+          "endpoints": 478,
+          "junctions": 2656
+        }
+      }
+    },
+    {
+      "stem": "picsum_63",
+      "file": "test_imgs\\picsum_63.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 732,
+          "edge_density_pct": 1.58,
+          "line_pixels": 12429,
+          "component_count": 7749,
+          "endpoints": 4161,
+          "junctions": 1024
+        },
+        "lineart_anime": {
+          "processing_ms": 5,
+          "edge_density_pct": 18.95,
+          "line_pixels": 149063,
+          "component_count": 2669,
+          "endpoints": 8570,
+          "junctions": 90962
+        },
+        "canny": {
+          "processing_ms": 70,
+          "edge_density_pct": 13.9,
+          "line_pixels": 109313,
+          "component_count": 512,
+          "endpoints": 1905,
+          "junctions": 39197
+        }
+      }
+    },
+    {
+      "stem": "picsum_64",
+      "file": "test_imgs\\picsum_64.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 755,
+          "edge_density_pct": 1.44,
+          "line_pixels": 11293,
+          "component_count": 5653,
+          "endpoints": 3316,
+          "junctions": 2029
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 10.78,
+          "line_pixels": 84751,
+          "component_count": 1592,
+          "endpoints": 4607,
+          "junctions": 32808
+        },
+        "canny": {
+          "processing_ms": 46,
+          "edge_density_pct": 8.47,
+          "line_pixels": 66576,
+          "component_count": 298,
+          "endpoints": 1336,
+          "junctions": 16913
+        }
+      }
+    },
+    {
+      "stem": "picsum_65",
+      "file": "test_imgs\\picsum_65.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 728,
+          "edge_density_pct": 3.02,
+          "line_pixels": 23784,
+          "component_count": 13334,
+          "endpoints": 7268,
+          "junctions": 3319
+        },
+        "lineart_anime": {
+          "processing_ms": 5,
+          "edge_density_pct": 27.47,
+          "line_pixels": 216051,
+          "component_count": 4096,
+          "endpoints": 13574,
+          "junctions": 131891
+        },
+        "canny": {
+          "processing_ms": 70,
+          "edge_density_pct": 19.75,
+          "line_pixels": 155322,
+          "component_count": 509,
+          "endpoints": 2708,
+          "junctions": 58884
+        }
+      }
+    },
+    {
+      "stem": "rural_field",
+      "file": "test_imgs\\rural_field.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 703,
+          "edge_density_pct": 2.27,
+          "line_pixels": 10915,
+          "component_count": 5951,
+          "endpoints": 3271,
+          "junctions": 1625
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 24.8,
+          "line_pixels": 119038,
+          "component_count": 2386,
+          "endpoints": 6605,
+          "junctions": 72292
+        },
+        "canny": {
+          "processing_ms": 41,
+          "edge_density_pct": 18.09,
+          "line_pixels": 86828,
+          "component_count": 502,
+          "endpoints": 1781,
+          "junctions": 28707
+        }
+      }
+    },
+    {
+      "stem": "street_1",
+      "file": "test_imgs\\street_1.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 700,
+          "edge_density_pct": 1.79,
+          "line_pixels": 14061,
+          "component_count": 5594,
+          "endpoints": 4304,
+          "junctions": 3007
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 9.29,
+          "line_pixels": 73039,
+          "component_count": 1691,
+          "endpoints": 4433,
+          "junctions": 32953
+        },
+        "canny": {
+          "processing_ms": 29,
+          "edge_density_pct": 7.08,
+          "line_pixels": 55650,
+          "component_count": 226,
+          "endpoints": 914,
+          "junctions": 17817
+        }
+      }
+    },
+    {
+      "stem": "street_2",
+      "file": "test_imgs\\street_2.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 709,
+          "edge_density_pct": 2.13,
+          "line_pixels": 16753,
+          "component_count": 8476,
+          "endpoints": 4421,
+          "junctions": 2517
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 20.03,
+          "line_pixels": 157510,
+          "component_count": 2489,
+          "endpoints": 7512,
+          "junctions": 70968
+        },
+        "canny": {
+          "processing_ms": 56,
+          "edge_density_pct": 15.04,
+          "line_pixels": 118272,
+          "component_count": 625,
+          "endpoints": 2460,
+          "junctions": 26739
+        }
+      }
+    },
+    {
+      "stem": "street_4",
+      "file": "test_imgs\\street_4.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 695,
+          "edge_density_pct": 4.13,
+          "line_pixels": 32443,
+          "component_count": 8766,
+          "endpoints": 7098,
+          "junctions": 12942
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 11.53,
+          "line_pixels": 90692,
+          "component_count": 2146,
+          "endpoints": 5750,
+          "junctions": 52193
+        },
+        "canny": {
+          "processing_ms": 37,
+          "edge_density_pct": 8.3,
+          "line_pixels": 65267,
+          "component_count": 301,
+          "endpoints": 1294,
+          "junctions": 21835
+        }
+      }
+    },
+    {
+      "stem": "texture_1",
+      "file": "test_imgs\\texture_1.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 676,
+          "edge_density_pct": 1.27,
+          "line_pixels": 10013,
+          "component_count": 3058,
+          "endpoints": 1923,
+          "junctions": 2564
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 7.15,
+          "line_pixels": 56229,
+          "component_count": 542,
+          "endpoints": 1106,
+          "junctions": 9601
+        },
+        "canny": {
+          "processing_ms": 19,
+          "edge_density_pct": 6.24,
+          "line_pixels": 49061,
+          "component_count": 196,
+          "endpoints": 666,
+          "junctions": 2789
+        }
+      }
+    },
+    {
+      "stem": "texture_2",
+      "file": "test_imgs\\texture_2.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 703,
+          "edge_density_pct": 0.43,
+          "line_pixels": 3379,
+          "component_count": 2117,
+          "endpoints": 1021,
+          "junctions": 356
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 6.41,
+          "line_pixels": 50435,
+          "component_count": 704,
+          "endpoints": 1551,
+          "junctions": 24892
+        },
+        "canny": {
+          "processing_ms": 25,
+          "edge_density_pct": 4.93,
+          "line_pixels": 38741,
+          "component_count": 324,
+          "endpoints": 849,
+          "junctions": 5505
+        }
+      }
+    },
+    {
+      "stem": "texture_3",
+      "file": "test_imgs\\texture_3.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 718,
+          "edge_density_pct": 5.95,
+          "line_pixels": 46781,
+          "component_count": 12742,
+          "endpoints": 9049,
+          "junctions": 18140
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 18.16,
+          "line_pixels": 142785,
+          "component_count": 2258,
+          "endpoints": 6936,
+          "junctions": 46046
+        },
+        "canny": {
+          "processing_ms": 39,
+          "edge_density_pct": 13.69,
+          "line_pixels": 107647,
+          "component_count": 319,
+          "endpoints": 1460,
+          "junctions": 25191
+        }
+      }
+    },
+    {
+      "stem": "variety_1",
+      "file": "test_imgs\\variety_1.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 686,
+          "edge_density_pct": 2.5,
+          "line_pixels": 19662,
+          "component_count": 9066,
+          "endpoints": 5433,
+          "junctions": 4266
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 18.63,
+          "line_pixels": 146478,
+          "component_count": 2689,
+          "endpoints": 8833,
+          "junctions": 92145
+        },
+        "canny": {
+          "processing_ms": 47,
+          "edge_density_pct": 13.24,
+          "line_pixels": 104119,
+          "component_count": 457,
+          "endpoints": 1831,
+          "junctions": 38919
+        }
+      }
+    },
+    {
+      "stem": "variety_2",
+      "file": "test_imgs\\variety_2.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 704,
+          "edge_density_pct": 2.24,
+          "line_pixels": 17595,
+          "component_count": 5977,
+          "endpoints": 3550,
+          "junctions": 5358
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 15.7,
+          "line_pixels": 123435,
+          "component_count": 1376,
+          "endpoints": 4249,
+          "junctions": 40509
+        },
+        "canny": {
+          "processing_ms": 34,
+          "edge_density_pct": 12.36,
+          "line_pixels": 97199,
+          "component_count": 392,
+          "endpoints": 1623,
+          "junctions": 16586
+        }
+      }
+    },
+    {
+      "stem": "variety_3",
+      "file": "test_imgs\\variety_3.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 706,
+          "edge_density_pct": 1.38,
+          "line_pixels": 10890,
+          "component_count": 5294,
+          "endpoints": 2495,
+          "junctions": 2782
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 17.22,
+          "line_pixels": 135399,
+          "component_count": 2091,
+          "endpoints": 7272,
+          "junctions": 82475
+        },
+        "canny": {
+          "processing_ms": 47,
+          "edge_density_pct": 12.54,
+          "line_pixels": 98585,
+          "component_count": 446,
+          "endpoints": 1622,
+          "junctions": 34699
+        }
+      }
+    },
+    {
+      "stem": "variety_4",
+      "file": "test_imgs\\variety_4.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 664,
+          "edge_density_pct": 0.63,
+          "line_pixels": 4989,
+          "component_count": 940,
+          "endpoints": 684,
+          "junctions": 2537
+        },
+        "lineart_anime": {
+          "processing_ms": 3,
+          "edge_density_pct": 1.95,
+          "line_pixels": 15325,
+          "component_count": 241,
+          "endpoints": 474,
+          "junctions": 7202
+        },
+        "canny": {
+          "processing_ms": 13,
+          "edge_density_pct": 1.44,
+          "line_pixels": 11340,
+          "component_count": 134,
+          "endpoints": 232,
+          "junctions": 1417
+        }
+      }
+    },
+    {
+      "stem": "上海",
+      "file": "test_imgs\\上海.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1049,
+          "edge_density_pct": 10.13,
+          "line_pixels": 1706563,
+          "component_count": 30303,
+          "endpoints": 23017,
+          "junctions": 1642800
+        },
+        "lineart_anime": {
+          "processing_ms": 75,
+          "edge_density_pct": 9.7,
+          "line_pixels": 1633465,
+          "component_count": 33640,
+          "endpoints": 67782,
+          "junctions": 666041
+        },
+        "canny": {
+          "processing_ms": 883,
+          "edge_density_pct": 7.73,
+          "line_pixels": 1302665,
+          "component_count": 10486,
+          "endpoints": 26447,
+          "junctions": 269727
+        }
+      }
+    },
+    {
+      "stem": "内蒙古",
+      "file": "test_imgs\\内蒙古.jpeg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 799,
+          "edge_density_pct": 0.03,
+          "line_pixels": 107,
+          "component_count": 74,
+          "endpoints": 33,
+          "junctions": 1
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 6.98,
+          "line_pixels": 22530,
+          "component_count": 371,
+          "endpoints": 752,
+          "junctions": 5252
+        },
+        "canny": {
+          "processing_ms": 11,
+          "edge_density_pct": 6.07,
+          "line_pixels": 19567,
+          "component_count": 219,
+          "endpoints": 541,
+          "junctions": 1346
+        }
+      }
+    },
+    {
+      "stem": "北京",
+      "file": "test_imgs\\北京.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1103,
+          "edge_density_pct": 1.5,
+          "line_pixels": 313841,
+          "component_count": 24924,
+          "endpoints": 17629,
+          "junctions": 270174
+        },
+        "lineart_anime": {
+          "processing_ms": 84,
+          "edge_density_pct": 7.69,
+          "line_pixels": 1609822,
+          "component_count": 23873,
+          "endpoints": 69695,
+          "junctions": 836564
+        },
+        "canny": {
+          "processing_ms": 1088,
+          "edge_density_pct": 5.85,
+          "line_pixels": 1223321,
+          "component_count": 6665,
+          "endpoints": 26226,
+          "junctions": 291709
+        }
+      }
+    },
+    {
+      "stem": "天津",
+      "file": "test_imgs\\天津.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 1166,
+          "edge_density_pct": 8.06,
+          "line_pixels": 2033923,
+          "component_count": 34804,
+          "endpoints": 18531,
+          "junctions": 1980095
+        },
+        "lineart_anime": {
+          "processing_ms": 108,
+          "edge_density_pct": 8.9,
+          "line_pixels": 2244715,
+          "component_count": 39289,
+          "endpoints": 84849,
+          "junctions": 825033
+        },
+        "canny": {
+          "processing_ms": 1132,
+          "edge_density_pct": 7.13,
+          "line_pixels": 1799863,
+          "component_count": 15950,
+          "endpoints": 41525,
+          "junctions": 243688
+        }
+      }
+    },
+    {
+      "stem": "广州",
+      "file": "test_imgs\\广州.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 664,
+          "edge_density_pct": 3.52,
+          "line_pixels": 6605,
+          "component_count": 3637,
+          "endpoints": 2401,
+          "junctions": 528
+        },
+        "lineart_anime": {
+          "processing_ms": 1,
+          "edge_density_pct": 19.15,
+          "line_pixels": 35909,
+          "component_count": 904,
+          "endpoints": 2442,
+          "junctions": 18087
+        },
+        "canny": {
+          "processing_ms": 14,
+          "edge_density_pct": 13.54,
+          "line_pixels": 25381,
+          "component_count": 182,
+          "endpoints": 575,
+          "junctions": 7451
+        }
+      }
+    },
+    {
+      "stem": "拉萨",
+      "file": "test_imgs\\拉萨.jpg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 869,
+          "edge_density_pct": 4.43,
+          "line_pixels": 352391,
+          "component_count": 23305,
+          "endpoints": 17099,
+          "junctions": 304276
+        },
+        "lineart_anime": {
+          "processing_ms": 43,
+          "edge_density_pct": 11.14,
+          "line_pixels": 885063,
+          "component_count": 16838,
+          "endpoints": 38771,
+          "junctions": 473402
+        },
+        "canny": {
+          "processing_ms": 458,
+          "edge_density_pct": 8.42,
+          "line_pixels": 669203,
+          "component_count": 6536,
+          "endpoints": 18756,
+          "junctions": 125318
+        }
+      }
+    },
+    {
+      "stem": "新疆",
+      "file": "test_imgs\\新疆.png",
+      "methods": {
+        "anyline": {
+          "processing_ms": 912,
+          "edge_density_pct": 0.68,
+          "line_pixels": 14044,
+          "component_count": 7876,
+          "endpoints": 4287,
+          "junctions": 2117
+        },
+        "lineart_anime": {
+          "processing_ms": 12,
+          "edge_density_pct": 13.97,
+          "line_pixels": 289653,
+          "component_count": 6472,
+          "endpoints": 12973,
+          "junctions": 172323
+        },
+        "canny": {
+          "processing_ms": 152,
+          "edge_density_pct": 10.33,
+          "line_pixels": 214278,
+          "component_count": 2948,
+          "endpoints": 8034,
+          "junctions": 30415
+        }
+      }
+    },
+    {
+      "stem": "郑州",
+      "file": "test_imgs\\郑州.webp",
+      "methods": {
+        "anyline": {
+          "processing_ms": 779,
+          "edge_density_pct": 2.03,
+          "line_pixels": 15777,
+          "component_count": 6345,
+          "endpoints": 4395,
+          "junctions": 3660
+        },
+        "lineart_anime": {
+          "processing_ms": 4,
+          "edge_density_pct": 10.19,
+          "line_pixels": 79240,
+          "component_count": 1363,
+          "endpoints": 3215,
+          "junctions": 30542
+        },
+        "canny": {
+          "processing_ms": 30,
+          "edge_density_pct": 8.01,
+          "line_pixels": 62320,
+          "component_count": 350,
+          "endpoints": 1180,
+          "junctions": 12458
+        }
+      }
+    },
+    {
+      "stem": "重庆",
+      "file": "test_imgs\\重庆.jpeg",
+      "methods": {
+        "anyline": {
+          "processing_ms": 739,
+          "edge_density_pct": 1.29,
+          "line_pixels": 4462,
+          "component_count": 3231,
+          "endpoints": 1252,
+          "junctions": 136
+        },
+        "lineart_anime": {
+          "processing_ms": 2,
+          "edge_density_pct": 22.93,
+          "line_pixels": 79239,
+          "component_count": 1673,
+          "endpoints": 4771,
+          "junctions": 42222
+        },
+        "canny": {
+          "processing_ms": 26,
+          "edge_density_pct": 16.9,
+          "line_pixels": 58420,
+          "component_count": 302,
+          "endpoints": 1157,
+          "junctions": 18498
+        }
+      }
+    }
+  ],
+  "summary": {
+    "anyline": {
+      "avg_ms": 1031,
+      "total_ms": 120586,
+      "n": 117
+    },
+    "lineart_anime": {
+      "avg_ms": 20,
+      "total_ms": 2372,
+      "n": 117
+    },
+    "canny": {
+      "avg_ms": 166,
+      "total_ms": 19454,
+      "n": 117
+    }
+  },
+  "total_images": 117
+}

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Docker
+.env
+
+# Outputs (runtime generated)
+client_app/backend/outputs/*
+!client_app/backend/outputs/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual environment
+dev_tools/.venv/
+*.egg-info/
+
+# Logs
+/tmp/backend.log
