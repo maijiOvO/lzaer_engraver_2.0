@@ -50,7 +50,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "detail": type(exc).__name__,
-            "error_msg": str(exc),
+            "error_msg": tb,
         },
     )
 
