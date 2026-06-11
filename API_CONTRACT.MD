@@ -82,17 +82,17 @@ AI 代理在开发 FastAPI 路由（`backend/app/api/`）、Pydantic 模型（`m
 
 ---
 
-### 步骤 4: 线稿提取 (Lineart Anime)
+### 步骤 4: 线稿提取 (Canny LineArt)
 - **接口**: `POST /pipeline/lineart`
-- **说明**: 使用 `lineart_anime` 引擎提取黑白线稿骨架。
+- **说明**: 使用 `canny_lineart` 引擎（CLAHE 局部对比度增强 + Canny 边缘检测）提取黑白线稿骨架。纯 CPU 运算，无需 GPU/模型下载。
 - **请求 (LineArtParams)**:
 ```json
 {
   "image_id": "uuid-string",
   "layer_index": null,  
-  "detect_resolution": 768,
-  "line_strength": 55,
-  "thin": true        
+  "low": 50,
+  "high": 150,
+  "smooth_level": 0
 }
 ```
 - **响应 (PipelineStepResponse)**:

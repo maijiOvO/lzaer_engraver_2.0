@@ -11,6 +11,10 @@ __pycache__/
 client_app/backend/outputs/*
 !client_app/backend/outputs/.gitkeep
 
+# Dev tools test outputs (runtime generated images)
+dev_tools/outputs/*
+!dev_tools/outputs/.gitkeep
+
 # IDE
 .vscode/
 .idea/

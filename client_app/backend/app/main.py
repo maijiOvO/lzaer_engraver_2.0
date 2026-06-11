@@ -56,8 +56,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ── Routers ───────────────────────────────────────────────────────
-from app.api.lineart import router as lineart_router
-app.include_router(lineart_router, prefix="/api")
+from app.api.canny import router as canny_router
+app.include_router(canny_router, prefix="/api")
 
 
 # ── Health endpoint (per API_CONTRACT.md § Step 0) ────────────────

@@ -1,9 +1,9 @@
-"""Line-art extraction service layer.
+"""Canny edge-detection service layer.
 
-Receives image metadata, delegates to the core lineart_anime engine,
+Receives image metadata, delegates to the canny_lineart engine,
 saves the binary result to outputs/, and returns the accessible URL.
 
-The engine expects a numpy.ndarray in OpenCV BGR format or a file path string.
+Engine: canny_lineart (CLAHE + Canny) — pure CPU, no GPU/model needed.
 """
 
 import os
@@ -19,9 +19,9 @@ from app.models.responses import PipelineStepResponse
 
 OUTPUTS_DIR = os.environ.get("OUTPUT_DIR", "/app/outputs")
 
-# ── Lazy-import the user-provided engine ──────────────────────────
+# ── Lazy-import the canny_lineart engine ──────────────────────────
 try:
-    from app.utils.lineart_anime import lineart_anime as _engine
+    from app.utils.canny_lineart import canny_lineart as _engine
 except ImportError:
     _engine = None
 
@@ -35,16 +35,16 @@ def _find_original_image(image_id: str) -> str:
     raise FileNotFoundError(f"Original image not found for image_id={image_id}")
 
 
-def process_lineart(params: LineArtParams) -> PipelineStepResponse:
-    """Run the lineart extraction pipeline step.
+def process_canny(params: LineArtParams) -> PipelineStepResponse:
+    """Run the Canny edge-detection pipeline step.
 
     Loads the original image as an OpenCV BGR numpy array via cv2.imread(),
-    passes it to the core engine, and saves the result with cv2.imwrite().
+    passes it to canny_lineart(), and saves the binary result with cv2.imwrite().
     """
     if _engine is None:
         raise HTTPException(
             status_code=501,
-            detail="lineart_anime engine not yet installed — paste your code into app/utils/lineart_anime.py",
+            detail="canny_lineart engine not found — check app/utils/canny_lineart.py",
         )
 
     t0 = time.perf_counter()
@@ -61,17 +61,17 @@ def process_lineart(params: LineArtParams) -> PipelineStepResponse:
         raise HTTPException(status_code=400, detail=f"Failed to decode image: {original_path}")
 
     logger.info(
-        "Line-art input | image_id={} shape={} dtype={} detect_resolution={} line_strength={} thin={}",
+        "Canny input | image_id={} shape={} dtype={} low={} high={} smooth={}",
         params.image_id, image.shape, image.dtype,
-        params.detect_resolution, params.line_strength, params.thin,
+        params.low, params.high, params.smooth_level,
     )
 
-    # 2. Call the core engine
+    # 2. Call the canny_lineart engine
     result = _engine(
         image,
-        detect_resolution=params.detect_resolution,
-        line_strength=params.line_strength,
-        thin=params.thin,
+        low=params.low,
+        high=params.high,
+        smooth_level=params.smooth_level,
     )
 
     # 3. Validate result
@@ -82,15 +82,15 @@ def process_lineart(params: LineArtParams) -> PipelineStepResponse:
         )
 
     # 4. Save result
-    result_path = os.path.join(OUTPUTS_DIR, f"{params.image_id}_lineart.png")
+    result_path = os.path.join(OUTPUTS_DIR, f"{params.image_id}_canny.png")
     tmp_path = result_path + ".tmp"
     cv2.imwrite(tmp_path, result)
     os.replace(tmp_path, result_path)
-    logger.info("Line-art saved | path={} shape={} dtype={}", result_path, result.shape, result.dtype)
+    logger.info("Canny result saved | path={} shape={} dtype={}", result_path, result.shape, result.dtype)
 
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
 
     return PipelineStepResponse(
-        result_url=f"/outputs/{params.image_id}_lineart.png",
+        result_url=f"/outputs/{params.image_id}_canny.png",
         processing_time_ms=elapsed_ms,
     )
