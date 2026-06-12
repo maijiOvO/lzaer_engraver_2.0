@@ -7,11 +7,10 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/index.html:/app/index.html
-      - ./frontend/vite.config.ts:/app/vite.config.ts
-      - ./frontend/tsconfig.json:/app/tsconfig.json
-      - ./frontend/package.json:/app/package.json
+      # 【魔法1】直接挂载整个前端目录，无论新增什么配置文件，容器瞬间同步！
+      - ./frontend:/app
+      # 【魔法2】匿名卷：保护容器内的 node_modules 不被宿主机的空文件夹或 Windows 格式覆盖
+      - /app/node_modules
     depends_on:
       - backend
     networks:
@@ -25,14 +24,21 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./backend/app:/app/app
-      - ./backend/outputs:/app/outputs
-      - ./backend/requirements.txt:/app/requirements.txt
+      # 直接挂载整个后端目录
+      - ./backend:/app
+      # 【魔法3】HuggingFace 专属持久化模型缓存卷！容器随便删，模型永不丢！
+      - hf_model_cache:/root/.cache/huggingface
     environment:
       - DEBUG_MODE=true
+      # 明确告诉 transformers 模型下载到上面那个卷里
+      - HF_HOME=/root/.cache/huggingface
     networks:
       - laser-net
 
 networks:
   laser-net:
     driver: bridge
+
+# 声明持久化数据卷
+volumes:
+  hf_model_cache:

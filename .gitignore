@@ -29,3 +29,7 @@ dev_tools/.venv/
 
 # Logs
 /tmp/backend.log
+
+# Hermes agent local state
+.hermes/
+client_app/backend/models/

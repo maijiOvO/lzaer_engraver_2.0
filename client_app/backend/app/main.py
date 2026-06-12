@@ -57,7 +57,18 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── Routers ───────────────────────────────────────────────────────
 from app.api.canny import router as canny_router
+from app.api.upload import router as upload_router
+from app.api.segment import router as segment_router
+from app.api.denoise import router as denoise_router
+from app.api.connectivity import router as connectivity_router
+from app.api.svg import router as svg_router
+
+app.include_router(upload_router, prefix="/api")
+app.include_router(segment_router, prefix="/api")
 app.include_router(canny_router, prefix="/api")
+app.include_router(denoise_router, prefix="/api")
+app.include_router(connectivity_router, prefix="/api")
+app.include_router(svg_router, prefix="/api")
 
 
 # ── Health endpoint (per API_CONTRACT.md § Step 0) ────────────────

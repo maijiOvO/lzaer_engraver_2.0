@@ -1,0 +1,766 @@
+/* ── Global reset ──────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════════════════════ */
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.content-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.sidebar {
+  width: 280px;
+  min-width: 240px;
+  background: #16213e;
+  border-right: 1px solid #0f3460;
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 2rem;
+}
+
+.main-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 2rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Progress Bar
+   ═══════════════════════════════════════════════════════════ */
+
+.progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 2rem;
+  background: #0d1b33;
+  border-bottom: 2px solid #0f3460;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.progress-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.progress-item-wrap {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Node ──────────────────────────────────────────────── */
+.progress-node {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: transparent;
+  border: 2px solid #0f3460;
+  color: #556;
+  cursor: default;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.progress-node.p-clickable {
+  cursor: pointer;
+}
+
+.progress-node.p-clickable:hover {
+  border-color: #e94560;
+  background: rgba(233, 69, 96, 0.08);
+}
+
+/* Done */
+.progress-node.p-done {
+  border-color: #3a6b4f;
+  color: #7bc99a;
+}
+
+.progress-node.p-done.p-clickable:hover {
+  border-color: #5abb77;
+  background: rgba(90, 187, 119, 0.1);
+}
+
+/* Active / current */
+.progress-node.p-current {
+  border-color: #e94560;
+  color: #e94560;
+  background: rgba(233, 69, 96, 0.12);
+  font-weight: 700;
+}
+
+/* Stale */
+.progress-node.p-stale {
+  border-color: #b8860b;
+  color: #e9a545;
+}
+
+.progress-node.p-stale.p-clickable:hover {
+  border-color: #e9a545;
+  background: rgba(233, 165, 69, 0.1);
+}
+
+/* Loading */
+.progress-node.p-loading {
+  border-color: #8b6914;
+  color: #e9a545;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* Idle (disabled) */
+.progress-node.p-idle {
+  opacity: 0.5;
+}
+
+.p-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.p-label {
+  line-height: 1;
+}
+
+.p-current-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e94560;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* ── Connector ─────────────────────────────────────────── */
+.progress-connector {
+  width: 32px;
+  height: 2px;
+  background: #0f3460;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.progress-connector.conn-done {
+  background: #3a6b4f;
+}
+
+/* ── Re-upload button ──────────────────────────────────── */
+.progress-reupload {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  background: #0f3460;
+  color: #aab;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.progress-reupload:hover {
+  background: #1a3366;
+  color: #ccc;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Control Panel (single step)
+   ═══════════════════════════════════════════════════════════ */
+
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── Step header ────────────────────────────────────────── */
+.cp-step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #0f3460;
+}
+
+.cp-step-num {
+  font-size: 1.1rem;
+  color: #e94560;
+  font-weight: 700;
+}
+
+.cp-step-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  flex: 1;
+}
+
+/* ── Step body ──────────────────────────────────────────── */
+.cp-step-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+/* ── Navigation ─────────────────────────────────────────── */
+.cp-nav {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #0f3460;
+  margin-top: auto;
+}
+
+.cp-nav-btn {
+  flex: 1;
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #0f3460;
+  color: #aab;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.cp-nav-btn:hover:not(:disabled) {
+  background: #1a3366;
+  color: #e0e0e0;
+}
+
+.cp-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Shared widgets
+   ═══════════════════════════════════════════════════════════ */
+
+.hint {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.param-group {
+  margin-bottom: 1.25rem;
+}
+
+.param-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #aab;
+  margin-bottom: 0.35rem;
+}
+
+.param-group input[type="range"] {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  background: #0f3460;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.param-group input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #e94560;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.generate-btn {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.generate-btn:hover:not(:disabled) {
+  background: #c73653;
+}
+
+.generate-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.elapsed {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #5a7;
+  text-align: center;
+}
+
+/* Step status badge */
+.step-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.status-idle {
+  background: rgba(136, 136, 136, 0.15);
+  color: #888;
+}
+
+.status-loading {
+  background: rgba(233, 165, 69, 0.18);
+  color: #e9a545;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.status-done {
+  background: rgba(90, 187, 119, 0.18);
+  color: #5abb77;
+}
+
+.status-stale {
+  background: rgba(233, 165, 69, 0.18);
+  color: #e9a545;
+}
+
+.step-hint {
+  font-size: 0.78rem;
+  color: #c9953b;
+  margin-bottom: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(233, 165, 69, 0.08);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Upload
+   ═══════════════════════════════════════════════════════════ */
+
+.upload-btn {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: #c73653;
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Canvas
+   ═══════════════════════════════════════════════════════════ */
+
+.canvas-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #666;
+  gap: 1.5rem;
+}
+
+.canvas-empty p {
+  font-size: 1.1rem;
+}
+
+/* ── Controls row (toggle + view mode buttons) ──────────── */
+.canvas-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+  flex-shrink: 0;
+}
+
+/* ── View label (descriptive text above viewport) ────────── */
+.canvas-view-label {
+  font-size: 0.82rem;
+  color: #8ab4d8;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(15, 52, 96, 0.4);
+  border-radius: 4px;
+  display: inline-block;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.canvas-toggle-btn {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #0f3460;
+  color: #aab;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.canvas-toggle-btn.active {
+  background: #e94560;
+  color: #fff;
+  border-color: #e94560;
+}
+
+.canvas-toggle-btn:hover:not(.active) {
+  background: #1a3366;
+  color: #ccc;
+}
+
+.canvas-toggle-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Opacity sliders (multiple) ──────────────────────────── */
+.opacity-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  flex-shrink: 0;
+}
+
+.os-label {
+  font-size: 0.8rem;
+  color: #aab;
+  min-width: 70px;
+  white-space: nowrap;
+}
+
+.os-pct {
+  font-size: 0.8rem;
+  color: #aab;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ── Viewport ───────────────────────────────────────────── */
+.canvas-viewport {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+}
+
+.canvas-viewport:active {
+  cursor: grabbing;
+}
+
+/* ── World ──────────────────────────────────────────────── */
+.canvas-world {
+  transform-origin: 0 0;
+  display: flex;
+  gap: 1.5rem;
+}
+
+.canvas-world-single {
+  display: flex;
+  justify-content: center;
+}
+
+.canvas-world-overlay {
+  display: grid;
+  place-items: center;
+  user-select: none;
+}
+
+.canvas-world-overlay .world-pane {
+  grid-area: 1 / 1;
+}
+
+.canvas-world-vertical {
+  flex-direction: column;
+  align-items: center;
+}
+
+.canvas-world-horizontal {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.canvas-world-img {
+  display: block;
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  -webkit-user-drag: none;
+  max-width: 100%;
+  height: auto;
+}
+
+.world-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pane-label {
+  font-size: 0.9rem;
+  color: #aab;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Opacity slider ─────────────────────────────────────── */
+.opacity-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #aab;
+  flex-shrink: 0;
+}
+
+.opacity-slider input[type="range"] {
+  flex: 1;
+  max-width: 200px;
+  height: 6px;
+  appearance: none;
+  background: #0f3460;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.opacity-slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #e94560;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SVG download
+   ═══════════════════════════════════════════════════════════ */
+
+.svg-pane {
+  justify-content: center;
+}
+
+.svg-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(15, 52, 96, 0.3);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.svg-stat {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  white-space: nowrap;
+}
+
+.svg-stat.dim {
+  font-size: 0.85rem;
+  color: #5a7;
+}
+
+.svg-dl-btn {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: #e94560;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.svg-dl-btn:hover {
+  background: #c73653;
+}
+
+.svg-dl-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: #aab;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Multi-Layer Canvas
+   ═══════════════════════════════════════════════════════════ */
+
+/* View mode switcher bar */
+.view-mode-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  flex-shrink: 0;
+}
+
+.view-mode-btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #aab;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-mode-btn:hover {
+  border-color: #888;
+  color: #ddd;
+}
+
+.view-mode-btn.active {
+  border-color: #e94560;
+  color: #e94560;
+  background: #2a1a25;
+}
+
+/* Layer tile container */
+.layer-tiles {
+  display: flex;
+  gap: 1.5rem;
+  transform-origin: 0 0;
+  user-select: none;
+}
+
+.layer-tiles.tiles-vertical {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.layer-tiles.tiles-horizontal {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+/* Individual layer tile card */
+.layer-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.layer-tile-img {
+  max-width: min(100%, 600px);
+  max-height: 400px;
+  object-fit: contain;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.layer-tile-empty {
+  width: 200px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  border: 1px dashed #444;
+  border-radius: 4px;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.layer-label {
+  font-size: 0.8rem;
+  color: #888;
+  text-align: center;
+}
+
+/* View mode selector in control panel */
+.view-mode-selector {
+  padding: 0.75rem 0 0.5rem;
+  border-top: 1px solid #1f3a5f;
+  margin-top: 0.5rem;
+}
