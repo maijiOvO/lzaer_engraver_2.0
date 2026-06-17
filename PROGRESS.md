@@ -1,16 +1,16 @@
 # 项目进度 (Progress Log)
 
-> 最后更新：2026-06-12（前端 L3.5 手动验证完成，案例 19-21 全部修复验收通过）
-> Git HEAD：775cc3f（有未提交变更，含 requests.py layer_index 修复 + App.tsx connectivityResultRef 修复）
+> 最后更新：2026-06-17 晚（标定器全链路修复：层数准确性 + 谷底检测 + 外扩边框 + 逐层对齐 + boundary 删除）
+> Git HEAD：待提交（boundary_refine 删除 + sam_driven 2-10层 + 谷底检测改进 + 外扩边框）
 
 ## 整体架构状态
 
 | 层级 | 进度 | 说明 |
 |------|------|------|
 | 项目治理 | ✅ | Git 初始化、.gitignore、AI_RULES.md 10 大准则、API_CONTRACT.md |
-| client_app/backend | 🟡 | 7 步管线全部有路由+服务+算法；SAM 分层架构升级为深度引导（2026-06-12）；layer_index 字段缺失已修复 |
-| client_app/frontend | 🟡 | 组件骨架完成（Canvas、ControlPanel、Uploader、ProgressBar）；参数面板已同步新架构 |
-| dev_tools | 🟡 | canny/denoise/sam 测试脚本就绪，连通性/SVG 测试脚本待写 |
+| client_app/backend | 🟡 | 7 步管线全部有路由+服务+算法；SAM 分层架构 sam_driven 统一接管 2-10 层 |
+| client_app/frontend | 🟡 | 组件骨架完成；参数面板已同步新架构 |
+| dev_tools | 🟡 | canny/denoise 测试脚本就绪；**标定器全链路修复完成**（2026-06-17 晚） |
 | Docker 环境 | ✅ | docker-compose.yml 前后端隔离，前端 5173 后端 8080 |
 
 ## 管线 7 步实现状态
@@ -19,7 +19,7 @@
 |------|----------|---------|----------------|----------|---------------|
 | 0. Health | main.py ✅ | — | — | — | — |
 | 1. Upload | upload.py ✅ | — | — | ImageUploader.tsx ✅ | — |
-| 2-3. 深度分层 | segment.py ✅ | segmentation_service.py ✅ | depth_engine.py ✅ structural_segmentation.py ✅ sam_engine.py ✅ layer_frame.py ✅ | ControlPanel.tsx ✅ | 待写 |
+| 2-3. 深度分层 | segment.py ✅ | segmentation_service.py ✅ | depth_engine.py ✅ structural_segmentation.py ✅ sam_engine.py ✅ layer_frame.py ✅ | ControlPanel.tsx ✅ | **test_sam_segment.py ✅ (四模式)** |
 | 4. Canny | canny.py ✅ | canny_service.py ✅ | canny_lineart.py ✅ | ControlPanel.tsx ✅ | test_canny.py ✅ |
 | 5. Denoise | denoise.py ✅ | denoise_service.py ✅ | denoise.py ✅ | ControlPanel.tsx ✅ | test_denoise.py ✅ |
 | 6. Connectivity | connectivity.py ✅ | connectivity_service.py ✅ | connectivity.py ✅ | — | test_pipeline.py（部分） |
@@ -49,6 +49,18 @@
 - **修改文件**: `sam_engine.py`(+refine_mask), `segmentation_service.py`(重写), `requests.py`(SegmentParams), `ControlPanel.tsx`, `App.tsx`, `index.ts`
 - **SegmentParams 变更**: 移除 `depth_mode`/`merge_sensitivity`/`min_layer_area_pct`，新增 `frame_width`/`min_island_area`
 - **依赖新增**: `transformers` + `depth-anything/Depth-Anything-V2-Small-hf`
+
+### 2026-07-02 — test_sam_segment.py 升级为三合一开发者效率工具
+- **旧方案**: test_sam_segment.py（364 行）— 手动 CLI 传参，单图处理，无数据集管理
+- **新方案**: test_sam_segment.py（1162 行）— scan / label / train / search 四模式
+  - **scan 模式**（默认）: SHA256 注册表扫描 → 新图自动深度估计+特征提取+参数预测+分割 → 注册
+  - **label 模式**: 交互式标定（Y/n/e/q），改参循环，深度缓存命中 <1s 重跑
+  - **train 模式**: RandomForest 预测器训练（≥10 样本），OOB score + 特征重要性
+  - **search 模式**: 接口就位（NotImplementedError + Google API 配置指南）
+- **新增类/函数**: `ImageRegistry`（SHA256 去重+状态管理+JSON 容错备份）、`extract_features()`（12 维特征）、`train_predictor()` / `predict_params()`（RandomForest + 马氏距离异常检测）
+- **新增文件**: `dev_tools/data/labeled.json`（注册表）、`dev_tools/data/layer_predictor.pkl`（训练产物，.gitignore）
+- **不动**: client_app/、Docker、docker-compose
+- **详见**: docs/开发者优化SAM处理脚本计划.md
 
 ### 2026-06-12 — Bug 修复：callSvg useCallback 闭包过期（案例 13）
 
@@ -89,9 +101,20 @@
 
 ## 下一步
 
-1. ~~集成测试：全管线联调（upload → SVG）~~ ✅ 已完成 — 2026-06-12 联合调试 20/20 通过
-2. ~~修复 UNSOLVED_ISSUES.md 案例 16（n_layers 上限校验）~~ ✅ 已修复 — PAST_ISSUES.md 案例 16，Pydantic 校验已生效
-3. ~~修复 UNSOLVED_ISSUES.md 案例 17（多层 SVG total_points）~~ ✅ 已修复 — PAST_ISSUES.md 案例 17
-4. 前端多步骤预览（connectivity/svg 步骤的 Canvas 叠加）
-5. 连通性修复的 dev_tools 独立测试脚本
-6. SVG 生成的 dev_tools 独立测试脚本
+1. ~~集成测试：全管线联调（upload → SVG）~~ ✅ 已完成 — 2026-06-12
+2. ~~修复 UNSOLVED_ISSUES.md 案例 16（n_layers 上限校验）~~ ✅
+3. ~~修复 UNSOLVED_ISSUES.md 案例 17（多层 SVG total_points）~~ ✅
+4. ~~SAM 测试脚本升级为四模式效率工具~~ ✅ — 2026-07-02
+5. ~~标定器全链路修复~~ ✅ — 2026-06-17 晚（案例 25-31）
+6. 标定 test_imgs/ 中 10+ 张图 → 训练预测器 → 验证预测精度
+7. 前端多步骤预览（connectivity/svg 步骤的 Canvas 叠加）
+8. 连通性修复的 dev_tools 独立测试脚本
+
+## 架构变更记录
+
+| 日期 | 变更 | 详见 |
+|------|------|------|
+| 2026-06-17 晚 | boundary 模式彻底删除，sam_driven 统一接管 2-10 层 | PAST_ISSUES 案例 25-26 |
+| 2026-06-17 晚 | suggest_n_layers 自动推断从通用函数移除 | PAST_ISSUES 案例 27 |
+| 2026-06-17 晚 | 谷底检测改进（σ+浅谷过滤+硬兜底） | PAST_ISSUES 案例 28,31 |
+| 2026-06-17 晚 | 外框向外延伸（不遮挡内容）+ 逐层视图对齐 | PAST_ISSUES 案例 29-30 |

@@ -71,11 +71,11 @@ app.add_middleware(
 
 class SegmentRequest(BaseModel):
     image_name: str
-    n_layers: int = Field(default=3, ge=2, le=6)
+    n_layers: int = Field(default=3, ge=2, le=10)
     frame_width: int = Field(default=50, ge=20, le=200)
     min_island_area: int = Field(default=100, ge=10, le=5000)
     quality: str = Field(default="standard", pattern="^(draft|standard|fine)$")
-    refine_mode: str = Field(default="sam_driven", pattern="^(none|slic|boundary|sam_driven)$")
+    refine_mode: str = Field(default="sam_driven", pattern="^(none|slic|sam_driven)$")
 
 class SaveRequest(BaseModel):
     image_name: str
@@ -172,13 +172,10 @@ def run_segmentation(req: SegmentRequest) -> dict:
 
     depth_h, depth_w = depth_map.shape[:2]
 
-    # ── 自动推断最优层数 ─────────────────────────────
+    # ── 计算建议层数（仅信息展示，不覆盖用户选择）───
     from app.utils.structural_segmentation import suggest_n_layers
     suggested_n = int(suggest_n_layers(depth_map))
-    # 首次（默认值3）自动推断；用户手动调整后用用户的值
     n_layers = req.n_layers
-    if n_layers == 3 and suggested_n != 3:
-        n_layers = suggested_n
 
     # ── 缩放到深度图分辨率 ──────────────────────────
     if (depth_h, depth_w) != (orig_h, orig_w):
@@ -192,31 +189,13 @@ def run_segmentation(req: SegmentRequest) -> dict:
         work_frame_width = req.frame_width
         work_min_island = req.min_island_area
 
-    refine_mode = getattr(req, "refine_mode", "boundary")
-
-    # sam_driven 模式下限死 3 层——更宽的阈值保证 SAM 区块不被切散
-    if refine_mode == "sam_driven" and n_layers > 3:
-        n_layers = 3
+    refine_mode = getattr(req, "refine_mode", "sam_driven")
 
     # 标志位：sam_driven 模式直接工作在原图分辨率，跳过深度分辨率缩放和后续 SAM 精修
     sam_driven_mode = False
 
     # ── Step 2: 选择分割算法 ─────────────────────────
-    if refine_mode == "boundary":
-        from boundary_refine import refine_layers
-        from app.utils.structural_segmentation import quantize_depth, generate_frame_mask
-
-        raw_masks = quantize_depth(depth_map, n_layers=n_layers)
-        layer_masks, stats = refine_layers(
-            work_image, raw_masks, depth_map,
-            band_width=5, min_component_area=100, box_padding=10,
-        )
-        frame_mask = generate_frame_mask(depth_h, depth_w, frame_width=work_frame_width)
-        # 每层添加外框
-        frame_bin = frame_mask > 0
-        for mask in layer_masks:
-            mask[frame_bin] = 255
-    elif refine_mode == "sam_driven":
+    if refine_mode == "sam_driven":
         # 新管线：SAM 自动分割 → 深度中位数归属 → 连通修复
         # 工作在原图分辨率，SAM 决定对象形状，深度仅决定 Z 轴排序
         from app.utils.sam_engine import run_sam_automatic
@@ -235,9 +214,9 @@ def run_segmentation(req: SegmentRequest) -> dict:
     elif refine_mode == "none":
         # 纯等距量化 + 连通修复（客户端算法）
         from app.utils.structural_segmentation import (
-            quantize_depth, generate_frame_mask, repair_layer_mask,
+            valley_quantize_depth, generate_frame_mask, repair_layer_mask,
         )
-        raw_masks = quantize_depth(depth_map, n_layers=n_layers)
+        raw_masks = valley_quantize_depth(depth_map, n_layers=n_layers)
         frame_mask = generate_frame_mask(depth_h, depth_w, frame_width=work_frame_width)
         layer_masks = []
         stats = []
@@ -305,10 +284,22 @@ def run_segmentation(req: SegmentRequest) -> dict:
     else:
         frame_mask_full = frame_mask
 
-    # ── Step 7: 保存叠加图（原图分辨率） ────────────────────
+    # ── Step 7: 保存叠加图（扩展画布尺寸） ────────────────────
     suffix = f"_n{n_layers}_f{req.frame_width}_i{req.min_island_area}"
     suffix += "_dr" if req.quality == "draft" else "_std"
-    overlay = image.copy()
+
+    # 向外延伸边框 → pad 原图以匹配扩展后的层蒙版
+    if sam_driven_mode and frame_mask_full.shape != image.shape[:2]:
+        fw = req.frame_width
+        image_padded = cv2.copyMakeBorder(
+            image, fw, fw, fw, fw, cv2.BORDER_CONSTANT, value=(255, 255, 255),
+        )
+        out_h, out_w = image_padded.shape[:2]
+    else:
+        image_padded = image
+        out_h, out_w = image.shape[:2]
+
+    overlay = image_padded.copy()
     colors = [(231, 76, 60), (46, 204, 113), (52, 152, 219), (241, 196, 15), (155, 89, 182)]
     for idx, mask in enumerate(layer_masks):
         c = colors[idx % len(colors)]
@@ -324,6 +315,7 @@ def run_segmentation(req: SegmentRequest) -> dict:
     for rank, mask in enumerate(layer_masks):
         mask_path = SAM_OUTPUT_DIR / f"{stem}{suffix}_mask_{rank}.png"
         cv2.imwrite(str(mask_path), mask)
+        # frame 图：蒙版中去掉 frame 区域 = 纯内容
         pure = mask.copy()
         pure[frame_mask_full > 0] = 0
         frame_path = SAM_OUTPUT_DIR / f"{stem}{suffix}_frame_{rank}.png"
@@ -338,7 +330,7 @@ def run_segmentation(req: SegmentRequest) -> dict:
             "fg_pct": fg_pct,
         })
 
-    scores = score_segmentation(stats, (orig_h, orig_w))
+    scores = score_segmentation(stats, (out_h, out_w))
 
     try:
         features = extract_features(image, depth_map)
@@ -355,6 +347,7 @@ def run_segmentation(req: SegmentRequest) -> dict:
         "depth_cached": depth_cached,
         "elapsed_ms": 0,
         "suggested_n_layers": suggested_n,
+        "actual_refine_mode": refine_mode,
         "params": {
             "n_layers": n_layers, "frame_width": req.frame_width,
             "min_island_area": req.min_island_area, "quality": req.quality,
@@ -380,7 +373,7 @@ def save_label(image_name: str, params: dict, scores: dict | None = None, featur
         "frame_width": params["frame_width"],
         "min_island_area": params["min_island_area"],
         "quality": params.get("quality", "standard"),
-        "refine_mode": params.get("refine_mode", "boundary"),
+        "refine_mode": params.get("refine_mode", "sam_driven"),
     }
 
     # 记录笔刷事件数量

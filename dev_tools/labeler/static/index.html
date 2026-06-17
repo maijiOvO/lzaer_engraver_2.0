@@ -52,6 +52,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#1a1a2e;
 .gesture-hint{display:none;padding:3px 12px;font-size:10px;color:#505070;background:#0f0f23;text-align:center}
 .gesture-hint.show{display:block}
 
+/* ── Brush toolbar ────────────────── */
+.brush-toolbar{display:none;align-items:center;gap:6px;padding:4px 12px;background:#16213e;border-top:1px solid #2a2a4a;flex-wrap:wrap}
+.brush-toolbar.show{display:flex !important}
+
 /* ── Controls ─────────────────────── */
 .controls{width:260px;min-width:240px;background:#16213e;border-left:1px solid #2a2a4a;padding:12px;display:flex;flex-direction:column;overflow-y:auto}
 .controls h3{font-size:14px;margin-bottom:4px;word-break:break-all}
@@ -115,7 +119,7 @@ button{padding:5px 10px;border:none;border-radius:4px;cursor:pointer;font-size:1
   </div>
   <div class="layer-bar" id="layerBar"></div>
   <div class="opacity-bar" id="opacityBar"></div>
-  <div class="brush-toolbar" id="brushToolbar" style="display:none;align-items:center;gap:6px;padding:4px 12px;background:#16213e;border-top:1px solid #2a2a4a;flex-wrap:wrap">
+  <div class="brush-toolbar" id="brushToolbar">
     <button class="brush-type-btn active" data-btype="include" onclick="BrushTool.setBrushType('include')" style="padding:3px 10px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#2ECC71;cursor:pointer;font-size:11px">🟢 纳入</button>
     <button class="brush-type-btn" data-btype="exclude" onclick="BrushTool.setBrushType('exclude')" style="padding:3px 10px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#E74C3C;cursor:pointer;font-size:11px">🔴 排除</button>
     <span style="font-size:10px;color:#a0a0c0">笔刷:</span>
@@ -135,7 +139,7 @@ button{padding:5px 10px;border:none;border-radius:4px;cursor:pointer;font-size:1
   <div class="section">
     <h4>手动参数（覆盖自动推断）</h4>
     <label>层数: <b id="valN">—</b>
-      <input type="range" id="nLayers" min="2" max="6" value="3" oninput="onParam()">
+      <input type="range" id="nLayers" min="2" max="10" value="3" oninput="onParam()">
     </label>
     <label>外框: <b id="valF">50</b>px
       <input type="range" id="frameWidth" min="20" max="200" value="50" oninput="onParam()">
@@ -194,6 +198,8 @@ button{padding:5px 10px;border:none;border-radius:4px;cursor:pointer;font-size:1
 const API = '';
 let images = [], curIdx = -1, segResult = null, curImageName = '';
 let viewMode = 'overlay';  // orig | overlay | layers
+let segVersion = 0;  // cache-busting counter
+let refineMode = 'sam_driven';  // 当前分割模式，auto-segment 后同步
 let layerVis = { orig: true, layers: [] };
 let layerOpacities = { orig: 100, layers: [] };
 
@@ -281,6 +287,7 @@ async function runSegManual() {
       // 回填参数到滑块（层数由后端自动推断填充）
       const pp = segResult.predicted_params || {};
       const nL = segResult.suggested_n_layers || pp.n_layers || 3;
+      refineMode = segResult.actual_refine_mode || 'sam_driven';
       document.getElementById('nLayers').value = nL;
       document.getElementById('frameWidth').value = pp.frame_width || 50;
       document.getElementById('minIsland').value = pp.min_island_area || 100;
@@ -288,7 +295,7 @@ async function runSegManual() {
       onParam();
       showAutoInfo(`🤖 自动推断: ${nL}层 fw=${pp.frame_width||50} ia=${pp.min_island_area||100} ${pp.quality||'standard'}`);
     } else {
-      // 重跑：用当前滑块值（用户可手动调整层数）
+      // 重跑：用当前滑块值，统一走 sam_driven 管线（SAM 自动分割→深度归属）
       const params = {
         n_layers: +document.getElementById('nLayers').value,
         frame_width: +document.getElementById('frameWidth').value,
@@ -299,13 +306,12 @@ async function runSegManual() {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({image_name: img.name, ...params})
       });
-      const nL = segResult.suggested_n_layers || segResult.params?.n_layers || params.n_layers;
-      document.getElementById('nLayers').value = nL;
+      showAutoInfo(`🔧 SAM驱动分层: ${segResult.params.n_layers}层 · fw=${params.frame_width} ia=${params.min_island_area} ${params.quality}`);
       onParam();
-      showAutoInfo(`🔧 手动参数: ${nL}层 fw=${params.frame_width} ia=${params.min_island_area} ${params.quality}`);
     }
     curImageName = img.name;
-    setMode('overlay');
+    segVersion++;  // bust browser cache
+    setMode('review');
     showAllControls();
     renderScores(segResult.scores);
     renderStats(segResult.stats);
@@ -369,7 +375,11 @@ function setMode(mode) {
   document.getElementById('layerBar').classList.toggle('show', showLayers);
   document.getElementById('opacityBar').classList.toggle('show', showLayers);
 
-  // Brush mode
+  // ── 先渲染视图（构建 DOM）──
+  if (segResult) renderByMode();
+  else if (mode === 'depth') renderDepthView();
+
+  // ── 再初始化笔刷（DOM 已就绪）──
   if (mode === 'review') {
     if (segResult) {
       const layers = segResult.layers || [];
@@ -383,9 +393,6 @@ function setMode(mode) {
   } else {
     BrushTool.disable();
   }
-
-  if (segResult) renderByMode();
-  else if (mode === 'depth') renderDepthView();  // 深度图不需要分割结果
 }
 
 function renderByMode() {
@@ -407,7 +414,7 @@ function renderOrigView() {
 
 function renderOverlayView() {
   const world = document.getElementById('world');
-  world.innerHTML = `<img src="${segResult.overlay_url}" alt="叠加" onload="onWorldImgLoad()">`;
+  world.innerHTML = '<img src="' + segResult.overlay_url + '?v=' + segVersion + '" alt="叠加" onload="onWorldImgLoad()">';
   document.getElementById('placeholder').style.display = 'none';
   doCentering();
 }
@@ -423,6 +430,7 @@ function renderDepthView() {
 function renderLayersView() {
   const world = document.getElementById('world');
   const layers = segResult.layers || [];
+  const fw = segResult.params?.frame_width || 50;  // 外扩边框宽度
   layerVis = { orig: true, layers: layers.map(() => true) };
   layerOpacities = { orig: 100, layers: layers.map(() => 100) };
 
@@ -431,9 +439,9 @@ function renderLayersView() {
   html += `<div class="world-pane" data-pane="orig" style="opacity:1">
     <img src="/images/${encodeURI(curImageName)}" alt="原图" onload="onWorldImgLoad()">
   </div>`;
-  // 逐层 canvas（替代 CSS mask-image）
+  // 逐层 canvas — 外扩了 fw px，用 left/top 负偏移对齐内容区
   layers.forEach((l, i) => {
-    html += `<div class="world-pane" data-pane="layer${i}" style="opacity:1">
+    html += `<div class="world-pane" data-pane="layer${i}" style="opacity:1; left:-${fw}px; top:-${fw}px">
       <canvas id="layerCanvas${i}" style="display:block"></canvas>
     </div>`;
   });
@@ -469,7 +477,7 @@ function renderLayersView() {
       // 首次渲染完成后做一次居中
       if (i === 0) doCentering();
     };
-    img.src = l.frame_url;
+    img.src = l.frame_url + '?v=' + segVersion;
   });
 
   // 图层开关栏
@@ -576,6 +584,8 @@ function hideAllControls() {
   document.getElementById('layerBar').classList.remove('show');
   document.getElementById('opacityBar').classList.remove('show');
   document.getElementById('gestureHint').classList.remove('show');
+  document.getElementById('brushToolbar').classList.remove('show');
+  BrushTool.disable();
 }
 
 function showAllControls() {

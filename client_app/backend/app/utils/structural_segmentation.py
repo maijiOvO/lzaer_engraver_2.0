@@ -66,6 +66,143 @@ def suggest_n_layers(
     return n
 
 
+def find_valley_thresholds(
+    depth_map: np.ndarray,
+    n_layers: int,
+    n_bins: int = 80,
+    smooth_sigma: float = 3.0,
+    min_dip_ratio: float = 0.15,
+) -> list[float]:
+    """在深度直方图中检测谷底，作为层间切割阈值。
+
+    避免等距切割的"拦腰斩断"问题：切割线落在像素密度的天然裂缝处，
+    大范围渐变区域（如从前到后的墙）不会被切成多段。
+
+    Args:
+        depth_map: (H, W) float32，值域 [0, 1]。
+        n_layers: 目标层数。
+        n_bins: 直方图 bin 数。
+        smooth_sigma: 高斯平滑 σ（bin 单位），越大谷底越少。
+        min_dip_ratio: 浅谷过滤比例。谷底密度必须比两侧高峰低至少此比例。
+
+    Returns:
+        n_layers-1 个阈值 float，升序排列。
+        不够时用分位数补足。
+    """
+    from scipy.ndimage import gaussian_filter1d
+    from loguru import logger
+
+    # 1. 直方图
+    flat = depth_map.ravel()
+    counts, edges = np.histogram(flat, bins=n_bins, range=(0.0, 1.0))
+    bin_centers = (edges[:-1] + edges[1:]) / 2
+
+    # 2. 平滑（加大 σ 消除建筑内部浅谷）
+    smoothed = gaussian_filter1d(counts.astype(np.float64), sigma=smooth_sigma)
+
+    # 3. 找谷底（局部极小值 + 深度过滤）
+    valleys: list[tuple[float, float, float]] = []  # (center, density, dip_ratio)
+    search_radius = max(2, int(smooth_sigma))
+    for i in range(search_radius, n_bins - search_radius):
+        is_valley = True
+        for r in range(1, search_radius + 1):
+            if smoothed[i] >= smoothed[i - r] or smoothed[i] >= smoothed[i + r]:
+                is_valley = False
+                break
+        if not is_valley:
+            continue
+        # 计算谷深比：谷底密度 vs 两侧高峰的平均
+        left_peak = max(smoothed[i - search_radius:i])
+        right_peak = max(smoothed[i:i + search_radius])
+        peak_avg = (left_peak + right_peak) / 2
+        if peak_avg == 0:
+            continue
+        dip_ratio = 1.0 - smoothed[i] / peak_avg
+        if dip_ratio >= min_dip_ratio:
+            valleys.append((float(bin_centers[i]), float(smoothed[i]), dip_ratio))
+
+    # 4. 按谷深比降序（最深的谷底优先）
+    valleys.sort(key=lambda x: x[2], reverse=True)
+
+    thresholds: list[float] = []
+    needed = n_layers - 1
+
+    # 5. 取最深谷底，保持顺序
+    taken = sorted([v[0] for v in valleys[:needed]])
+
+    # 6. 不够 → 分位数补足（放宽接近限制）
+    if len(taken) < needed:
+        percentiles = np.linspace(0, 100, n_layers + 1)[1:-1]
+        for p in percentiles:
+            thresh = float(np.percentile(flat, p))
+            # 避免与已有阈值太近（< 0.02），但不够时放宽
+            proximity_limit = 0.02 if len(taken) >= needed - 1 else 0.0
+            if all(abs(thresh - t) > proximity_limit for t in taken):
+                taken.append(thresh)
+                if len(taken) >= needed:
+                    break
+        taken.sort()
+
+    # 7. 仍不够 → 等距阈值硬兜底
+    if len(taken) < needed:
+        for i in range(1, n_layers):
+            t = i / n_layers
+            if all(abs(t - x) > 0.01 for x in taken):
+                taken.append(t)
+                if len(taken) >= needed:
+                    break
+        taken.sort()
+
+    logger.info(
+        "[谷底检测] n_layers={} valleys_found={} thresholds={}",
+        n_layers, len(valleys),
+        [f"{t:.3f}" for t in taken[:needed]],
+    )
+    return taken[:needed]
+
+
+def valley_quantize_depth(
+    depth_map: np.ndarray,
+    n_layers: int,
+) -> list[np.ndarray]:
+    """用谷底阈值替代等距阈值，将深度图量化为 N 层。
+
+    Args:
+        depth_map: (H, W) float32。
+        n_layers: 目标层数。
+
+    Returns:
+        N 个 (H, W) uint8 二值蒙版。
+    """
+    from loguru import logger
+
+    thresholds = find_valley_thresholds(depth_map, n_layers)
+    h, w = depth_map.shape[:2]
+    masks: list[np.ndarray] = []
+
+    for i in range(n_layers):
+        if i == 0:
+            mask = depth_map < thresholds[0]
+        elif i == n_layers - 1:
+            mask = depth_map >= thresholds[-1]
+        else:
+            mask = (depth_map >= thresholds[i-1]) & (depth_map < thresholds[i])
+        masks.append(mask.astype(np.uint8) * 255)
+
+    logger.info(
+        "[结构分层] 谷底量化完成 | layers={} thresholds={}",
+        n_layers, [f"{t:.3f}" for t in thresholds],
+    )
+    for i, m in enumerate(masks):
+        logger.debug(
+            "[结构分层]   层{} | fg_px={} ({}%)",
+            i, int(np.count_nonzero(m)),
+            float(np.count_nonzero(m) / (h * w) * 100),
+        )
+
+    return masks
+
+
 def quantize_depth(
     depth_map: np.ndarray,
     n_layers: int,
@@ -115,23 +252,26 @@ def generate_frame_mask(
     w: int,
     frame_width: int = 50,
 ) -> np.ndarray:
-    """生成外层固定边框蒙版。
+    """生成外层固定边框蒙版（向外延伸，不遮挡图像内容）。
 
-    边框是一个空心矩形环，位于图像边缘内侧 frame_width 像素。
+    边框位于扩展画布的外围 frame_width 像素，
+    原始图像内容置于中心区域，不被边框覆盖。
 
     Args:
-        h, w: 图像尺寸（像素）。
-        frame_width: 边框宽度（像素）。
+        h, w: 原始图像尺寸（像素）。
+        frame_width: 边框宽度（像素），向外延伸。
 
     Returns:
-        (H, W) uint8 二值蒙版，255=边框区域。
+        (H+2*fw, W+2*fw) uint8 二值蒙版，255=边框区域（外围），0=内容区域（中心）。
     """
-    frame = np.zeros((h, w), dtype=np.uint8)
-    # 四个边
-    frame[:frame_width, :] = 255          # 上边
-    frame[-frame_width:, :] = 255         # 下边
-    frame[:, :frame_width] = 255          # 左边
-    frame[:, -frame_width:] = 255         # 右边
+    padded_h = h + 2 * frame_width
+    padded_w = w + 2 * frame_width
+    frame = np.zeros((padded_h, padded_w), dtype=np.uint8)
+    # 四个外边（全部在外围）
+    frame[:frame_width, :] = 255                    # 上边（外部）
+    frame[-frame_width:, :] = 255                   # 下边（外部）
+    frame[:, :frame_width] = 255                    # 左边（外部）
+    frame[:, -frame_width:] = 255                   # 右边（外部）
     return frame
 
 
@@ -383,6 +523,13 @@ def build_sam_driven_layers(
     else:
         depth_full = depth_map
 
+    # ── Step 0: 计算谷底阈值（替代等距切割）─────────────────
+    thresholds = find_valley_thresholds(depth_full, n_layers)
+    logger.info(
+        "[SAM驱动分层] 谷底阈值={} | layers={}",
+        [f"{t:.3f}" for t in thresholds], n_layers,
+    )
+
     # ── Step 1: 每块 SAM mask → 深度中位数 → 层归属 ────────
     # SAM masks 按原始顺序（高置信度在前），逐个分配到层
     # 已分配像素不再被后续低置信度 mask 覆盖
@@ -406,9 +553,13 @@ def build_sam_driven_layers(
             continue
         median_depth = float(np.median(mask_depths))
 
-        # 等距映射到层索引
-        layer_idx = int(median_depth * n_layers)
-        layer_idx = max(0, min(n_layers - 1, layer_idx))
+        # 用谷底阈值映射到层索引
+        layer_idx = 0
+        for t in thresholds:
+            if median_depth >= t:
+                layer_idx += 1
+            else:
+                break
 
         # 整块分配到目标层
         layer_masks_bool[layer_idx][new_pixels] = True
@@ -428,7 +579,7 @@ def build_sam_driven_layers(
             "[SAM驱动分层] {:.1f}% 像素未被SAM覆盖，回退到深度等距量化",
             uncovered_pct,
         )
-        raw_masks = quantize_depth(depth_full, n_layers)
+        raw_masks = valley_quantize_depth(depth_full, n_layers)
         for i in range(n_layers):
             fallback = (raw_masks[i] > 0) & uncovered
             layer_masks_bool[i][fallback] = True
@@ -450,14 +601,20 @@ def build_sam_driven_layers(
     # ── Step 3: 转 uint8 ─────────────────────────────────────
     layer_masks_u8 = [m.astype(np.uint8) * 255 for m in layer_masks_bool]
 
-    # ── Step 4: 生成外框 ─────────────────────────────────────
+    # ── Step 4: 生成外框（向外延伸） + padding 层蒙版 ─────────
     frame_mask = generate_frame_mask(orig_h, orig_w, frame_width)
+    # 层蒙版 pad 到 frame 尺寸（内容居中，边框在外围）
+    fw = frame_width
+    layer_masks_padded = [
+        cv2.copyMakeBorder(m, fw, fw, fw, fw, cv2.BORDER_CONSTANT, value=0)
+        for m in layer_masks_u8
+    ]
 
     # ── Step 5: 逐层连通性修复 ───────────────────────────────
     layer_masks_final: list[np.ndarray] = []
     stats: list[dict] = []
 
-    for i, raw_u8 in enumerate(layer_masks_u8):
+    for i, raw_u8 in enumerate(layer_masks_padded):
         repaired, bridges, erased = repair_layer_mask(
             raw_u8, frame_mask, min_island_area,
         )
