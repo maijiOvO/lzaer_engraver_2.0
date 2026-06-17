@@ -1,7 +1,7 @@
 # 标定工具全面重构计划
 
-> 版本: 2.0  
-> 日期: 2026-06-17  
+> 版本: 2.1  
+> 日期: 2026-06-17（更新）  
 > 关联: `dev_tools/labeler/`（标定器全栈）、`dev_tools/scripts/test_sam_segment.py`（CLI 工具）
 
 ---
@@ -22,26 +22,42 @@
 
 | 算法 | 层分布 | 宏观结构 | 细节边缘 | 结论 |
 |------|--------|---------|---------|------|
-| 客户端等距量化 (raw) | 62.6/25.9/11.5% | ✅ 正确 | ❌ 粗锯齿 | **当前最佳基础** |
+| 客户端等距量化 (raw) | 62.6/25.9/11.5% | ✅ 正确 | ❌ 粗锯齿 | 深度图边界模糊 |
 | 客户端等距量化 (repaired) | 含外框 | ✅ | ❌ + 外框空白区 | 连通性修复，非质量问题 |
 | SLIC + 深度投票 | 59.5/2.4/42.9% | ❌ 层1几乎空 | ❌ 毛刺多 | 分位数对左偏分布失效 |
+| **SAM驱动分层 (sam_driven)** | **14.8/31.2/63.4%** | ✅ **无拦腰斩断** | ✅ **SAM原图边缘** | **当前默认引擎** |
 
 **根因分析**：
 
 - 深度模型（Depth-Anything-V2）对宏观空间结构的判断**正确**——能区分建筑群和天空
 - 深度图的空间分辨率（518px 高）决定了它**无法提供精确的对象边界**
 - 深度值分布严重左偏（中位数=0.0000），导致 SLIC 的分位数分层失效
-- 关键矛盾：深度模型负责"哪片区域属于第几层"（正确），但当前管线让深度模型同时负责"边界画在哪"（错误）
+- 关键矛盾：深度模型负责"哪片区域属于第几层"（正确），但旧管线让深度模型同时负责"边界画在哪"（错误）
 
-### 0.3 新方向
+### 0.3 新方向（已落地）
 
 ```
-深度模型 → "这片属于第 N 层"（层级归属）  ← 深度模型做这个，正确
+SAM 模型 → "边界在这条线上"（精确边缘，原图精度）  ← SAM 决定对象形状
     +
-SAM 模型 → "边界在这条线上"（精确边缘）    ← SAM 做这个，原图精度
+深度模型 → "这片属于第 N 层"（层级归属）            ← 深度只管 Z 轴排序
     ↓
-正确的分层蒙版
+正确的分层蒙版（整栋建筑不会被拦腰切断）
 ```
+
+**核心思路**：先跑 `run_sam_automatic` 获取原图精细区块（一栋楼 = 一个完整区块），
+再取每个区块的深度中位数决定归属层。SAM 保证边缘贴合原图且对象完整，
+深度图仅决定前后顺序。
+
+### 0.4 管线演进历史
+
+| 阶段 | 管线 | 默认引擎 | 状态 |
+|------|------|---------|------|
+| 阶段 0 | 等距量化 + 连通修复 | `none` | 保留（`--refine none`） |
+| 阶段 1 | 等距量化 + 边界带 SAM 精修 | `boundary` | ⚠️ 已废弃（拦腰斩断） |
+| 阶段 2 | **SAM 自动分割 → 深度归属** | **`sam_driven`** | ✅ **当前默认** |
+
+`boundary` 废弃原因：先做 `quantize_depth` 等距切分 → 高楼被水平切断 → 边界带 BBox 是狭长条带，
+无法包裹整栋建筑 → SAM 只能在局部补修 → 依然是断裂的半截楼。
 
 ---
 
@@ -95,67 +111,89 @@ SAM 模型 → "边界在这条线上"（精确边缘）    ← SAM 做这个，
   深度图 → 等距量化 → repair_layer_mask → SAM 逐层精修（事后补救）
                                                      ↑ 已经切坏了才修
 
-新管线（深度分层 + 层间边界带 SAM 精修）：
-  深度图 → 等距量化 raw（不做连通修复）→ 提取边界带 → SAM 框选精修 → 回填
-                 ↑ 宏观分层          ↑ 只在这 SAM 运行
+阶段1管线（深度分层 + 层间边界带 SAM 精修）— 已废弃：
+  深度图 → 等距量化 raw → 提取边界带 → SAM 框选精修 → 回填
+                 ↑ 宏观分层    ↑ BBox 无法包裹整栋建筑
+
+阶段2管线（SAM 自动分割 → 深度归属）— 当前默认：
+  原图 → run_sam_automatic → 精细区块列表（完整对象，SAM 边缘）
+    +                            ↓
+  深度图 ────────────→ 逐区块深度中位数归属 → N 层蒙版 → repair_layer_mask
+                        ↑ 深度只管 Z 轴排序，不画边界
 ```
 
 ---
 
 ## 三、新增模块详细设计
 
-### 3.1 `boundary_refine.py` — 边界精修引擎
+### 3.1 `build_sam_driven_layers()` — SAM驱动分层引擎（当前默认）
+
+位置：`client_app/backend/app/utils/structural_segmentation.py`
 
 **输入**：
-- `image` (np.ndarray): BGR 原图
-- `layer_masks_raw` (list[np.ndarray]): 等距量化的 N 层原始蒙版（不含外框、不含连通修复）
+- `sam_masks` (list[dict]): `run_sam_automatic()` 的输出，每个含 `segmentation` (bool H×W)
 - `depth_map` (np.ndarray): 深度图
+- `n_layers` (int): 目标层数（sam_driven 模式上限 3）
+- `image_shape` (tuple): 原图 (H, W)
+- `frame_width`, `min_island_area`: 连通性修复参数
 
 **流程**：
 
 ```
-Step 1: 提取层间边界带
-  对相邻层 i 和 i+1：
-    zone = dilate(layer_i, 5px) ∩ dilate(layer_{i+1}, 5px)
-    ← 这是深度图认为"过渡区域"的地带
+Step 1: SAM区块 → 深度中位数 → 层归属
+  遍历每个 SAM mask（按置信度降序）：
+    取该区块覆盖区域的深度中位数
+    layer_idx = int(median_depth * n_layers)  ← 整块不切割
+    尚未被更高置信度 mask 覆盖的像素 → 全部写入目标层
 
-Step 2: 在边界带内找到连通分量
-  cv2.connectedComponentsWithStats(zone)
-  每个分量 = 一个独立的"需要 SAM 判断归属"的局部区域
+Step 2: 未覆盖像素 fallback
+  未被任何 SAM mask 覆盖的像素 → 回退到 quantize_depth（等距量化）
 
-Step 3: SAM 框选精修
-  对每个连通分量：
-    bbox = 分量外接矩形 + 10px padding
-    image_crop = 原图[bbox]
-    SAM predictor.set_image(image_crop)
-    使用 box prompt（分量轮廓的 bbox 在原图坐标）→ SAM 输出精确蒙版
-  
-Step 4: 深度投票决定归属
-  对 SAM 输出的每个精修片段：
-    取片段在原图中的对应区域
-    计算深度中位数
-    归属到最近的等距量化层级
-
-Step 5: 回填到层蒙版
-  将片段分配回对应层
-  未覆盖的像素保持等距量化的结果
+Step 3: 连通性收尾
+  生成外框 → 逐层 repair_layer_mask（桥接 + 擦除微小孤岛）
 ```
 
 **输出**：
-- `refined_masks`: N 个精修后的层蒙版（不含外框）
+- `layer_masks`: N 个 uint8 二值蒙版（含外框）
 - `frame_mask`: 外框蒙版
-- `stats`: 每层统计 + 精修片段数
+- `stats`: 每层统计
 
-**关键参数**：
+**关键约束**：
+- `sam_driven` 模式上限 3 层 — 更多层使阈值过密，SAM 区块被分配到不同层 → 拦腰斩断
+- SAM 缓存：`{stem}_sam_region.npz`（压缩 region_map），首次 ~290s，缓存命中 ~8s
+- 层数自动推断：`suggest_n_layers(depth_map)` 返回建议值，`sam_driven` 取 `min(suggested, 3)`
 
-| 参数 | 默认 | 说明 |
+### 3.2 `boundary_refine.py` — 边界精修引擎（⚠️ 已废弃）
+
+> **废弃原因**：先 `quantize_depth` 等距切分再 SAM 修补的顺序有因果倒置漏洞。
+> 高楼 depth 0.1→0.5 跨度大，等距阈值直接切成多段，边界带 BBox 是狭长条带无法包裹整栋建筑。
+> 保留代码仅供对比，不再作为默认引擎。
+
+位置：`dev_tools/labeler/boundary_refine.py`
+
+### 3.3 SAM 结果缓存（新增）
+
+位置：`client_app/backend/app/utils/sam_engine.py` — `run_sam_automatic(cache_path=...)`
+
+| | 首次 | 缓存命中 |
 |------|------|------|
-| `band_width` | 5 | 边界带膨胀宽度（像素） |
-| `min_component_area` | 100 | 跳过过小的边界带分量 |
-| `sam_box_padding` | 10 | SAM 框选 padding |
-| `enable` | True | 是否启用精修（draft 模式时 False） |
+| 上海.jpg (5472×3078) | ~290s | ~8s |
+| 缓存文件 | `上海_sam_region.npz` (220KB) | — |
 
-### 3.2 `brush_recorder.py` — 笔刷事件记录模块
+缓存内容：压缩的 `region_map` int32 标签图 + mask 元数据。
+缓存位置：`dev_tools/outputs/sam/{stem}_sam_region.npz`（标定器）
+          `client_app/backend/outputs/{image_id}_sam_region.npz`（客户端）
+
+### 3.4 深度图预览 API（新增）
+
+位置：`dev_tools/labeler/labeler_server.py`
+
+```
+GET /api/depth-preview?image_name=上海.jpg
+→ 返回 JET 伪彩色 PNG，蓝=近 红=远
+```
+
+### 3.5 `brush_recorder.py` — 笔刷事件记录模块
 
 **数据结构**：
 
@@ -373,16 +411,24 @@ labeled.json（含 brush_events 引用 + 精修后蒙版）
 
 ## 七、实施阶段
 
-### 阶段 1：边界精修引擎
+### ✅ 阶段 0：SAM驱动分层引擎（新增，已完成）
 
-**目标**：实现 `boundary_refine.py`，在标定器中跑通新管线。
+**目标**：废弃 `boundary_refine`，实现 `build_sam_driven_layers()` 作为默认引擎。
 
 | 文件 | 操作 | 内容 |
 |------|------|------|
-| `dev_tools/labeler/boundary_refine.py` | 新建 | 边界带提取 + SAM 框选精修 + 回填 |
-| `dev_tools/labeler/labeler_server.py` | 修改 | `run_segmentation()` 增加 `refine_mode` 参数，支持新旧管线切换 |
+| `client_app/backend/app/utils/structural_segmentation.py` | 新增函数 | `build_sam_driven_layers()` — SAM区块→深度归属→连通修复 |
+| `client_app/backend/app/utils/sam_engine.py` | 修改 | `run_sam_automatic()` 新增 `cache_path` 参数 |
+| `dev_tools/labeler/labeler_server.py` | 修改 | 默认 `refine_mode="sam_driven"`，3层上限，深度图API |
+| `client_app/backend/app/services/segmentation_service.py` | 修改 | 支持 `engine="sam_driven"` |
+| `dev_tools/scripts/test_sam_segment.py` | 修改 | `--refine sam_driven` 选项 |
+| `dev_tools/labeler/static/index.html` | 修改 | 深度图预览按钮 |
 
-**验证**：在上海.jpg 上跑新管线，视觉对比新旧结果。
+**验证**：上海.jpg 上 CLI 和 Labeler 输出逐像素相同（MD5一致），无拦腰斩断。
+
+### ✅ 阶段 1：边界精修引擎（已完成，已废弃）
+
+**目标**：实现 `boundary_refine.py`。已于阶段0被 `sam_driven` 替代。
 
 ### 阶段 2：笔刷工具（前端）
 
