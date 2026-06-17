@@ -17,7 +17,7 @@ export interface UploadResponse {
 /** POST /api/pipeline/segment — Steps 2-3 (Depth-guided structural layering) */
 export interface SegmentParams {
   image_id: string;
-  n_layers: number;          // 2-5, default 3
+  n_layers?: number;          // [DEPRECATED] 由后端深度模型自动推断，不再由前端发送
   sam_quality: string;        // "draft" | "standard" | "fine", default "standard"
   force_recompute?: boolean;   // skip depth cache, default false
   // ── 结构分层参数 (2026-06-23 新增) ──

@@ -37,6 +37,7 @@ class SegmentParams(BaseModel):
     # ── 结构分层参数 ──────────────────────────────────────────
     frame_width: int = Field(50, ge=20, le=200, description="外层固定边框宽度（像素）")
     min_island_area: int = Field(100, ge=10, le=5000, description="低于此面积(px)的孤立岛直接丢弃")
+    engine: str = Field("depth_quantize", description="分割引擎: 'depth_quantize'（默认，深度等距量化+SAM精修）, 'sam_driven'（SAM自动分割→深度归属）")
 
     # ── 向后兼容（已废弃，保留以兼容旧前端请求）─────────────
     depth_mode: Optional[str] = Field(None, description="[DEPRECATED] 由深度估计替代，不再使用")

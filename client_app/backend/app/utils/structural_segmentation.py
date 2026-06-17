@@ -13,6 +13,59 @@ import cv2
 import numpy as np
 
 
+def suggest_n_layers(
+    depth_map: np.ndarray,
+    min_layers: int = 2,
+    max_layers: int = 5,
+    gap_threshold: float = 0.05,
+) -> int:
+    """根据深度图的百分位间距（gap）自动推断最优层数。
+
+    原理：在深度百分位曲线上寻找显著跳跃点。
+    每个跳跃表示"这以下是同一群物体，以上就是另一群"。
+
+    例如迪拜.jpg：
+      P33=0.00 → P50=0.13 (gap=0.13) ← 水面与建筑之间
+      P80=0.37 → P90=0.68 (gap=0.31) ← 建筑与天空之间
+      → 2 个显著 gap → 建议 3 层
+
+    Args:
+        depth_map: (H, W) float32 深度图。
+        min_layers: 最少层数。
+        max_layers: 最多层数。
+        gap_threshold: 百分位间距阈值。gap 超过此值视为"显著跳跃"。
+
+    Returns:
+        建议层数 ∈ [min_layers, max_layers]。
+    """
+    from loguru import logger
+
+    # 计算分位数 (1% 步长)
+    percentiles = np.linspace(0, 100, 101)
+    values = np.percentile(depth_map, percentiles)
+
+    # 计算相邻百分位之间的跳跃
+    gaps = np.diff(values)
+    significant_gaps = (gaps > gap_threshold).sum()
+
+    # 特殊处理：如果中位数附近有巨大跳跃（如迪拜的 P33→P50）
+    # 检测是否有超过 15% 范围的空窗
+    p25 = np.percentile(depth_map, 25)
+    p75 = np.percentile(depth_map, 75)
+    if p75 - p25 > 0.3 and significant_gaps == 0:
+        significant_gaps = 1
+
+    n = int(min(max_layers, max(min_layers, significant_gaps + 1)))
+
+    logger.info(
+        "[结构分层] 深度分析 | range=[{:.3f},{:.3f}] "
+        "gaps={} → suggest_n_layers={}",
+        float(depth_map.min()), float(depth_map.max()),
+        significant_gaps, n,
+    )
+    return n
+
+
 def quantize_depth(
     depth_map: np.ndarray,
     n_layers: int,
@@ -279,3 +332,153 @@ def build_structural_layers(
     )
 
     return layer_masks, frame_mask, stats
+
+
+def build_sam_driven_layers(
+    sam_masks: list[dict],
+    depth_map: np.ndarray,
+    n_layers: int,
+    image_shape: tuple[int, int],
+    frame_width: int = 50,
+    min_island_area: int = 100,
+) -> tuple[list[np.ndarray], np.ndarray, list[dict]]:
+    """新管线：SAM 自动分割 → 深度中位数归属 → 连通修复。
+
+    SAM 负责决定物体的形状（保证边缘贴合原图，对象完整不切断），
+    深度图仅负责决定每个完整对象的 Z 轴层级归属（排前后顺序）。
+
+    完整流程：
+    1. 遍历 SAM masks，计算每块的深度中位数 → 确定归属层
+    2. 按优先级（SAM 置信度）逐块分配到层蒙版
+    3. 未覆盖像素 fallback 到 quantize_depth
+    4. 生成外框 + 逐层连通性修复
+
+    Args:
+        sam_masks: run_sam_automatic() 的输出，list[dict]，
+                   每个 dict 含 "segmentation" (bool H×W)、"area"、"bbox" 等。
+                   分辨率必须与 image_shape 一致。
+        depth_map: (H_depth, W_depth) float32 深度图，[0,1] 归一化。
+                   分辨率可能与 image_shape 不同，内部会自动 rescale。
+        n_layers: 目标层数。
+        image_shape: 原图 (H, W)，SAM masks 的分辨率。
+        frame_width: 边框宽度（像素，在原图分辨率上）。
+        min_island_area: 孤立岛丢弃阈值（像素面积）。
+
+    Returns:
+        (layer_masks, frame_mask, stats) 其中：
+        - layer_masks: N 个 (H, W) uint8 二值蒙版（含边框）
+        - frame_mask: (H, W) uint8 边框蒙版
+        - stats: 每层统计 dict
+    """
+    from loguru import logger
+
+    orig_h, orig_w = image_shape
+    depth_h, depth_w = depth_map.shape[:2]
+
+    # ── 深度图缩放到原图分辨率 ──────────────────────────────
+    if (depth_h, depth_w) != (orig_h, orig_w):
+        depth_full = cv2.resize(
+            depth_map, (orig_w, orig_h), interpolation=cv2.INTER_CUBIC,
+        )
+    else:
+        depth_full = depth_map
+
+    # ── Step 1: 每块 SAM mask → 深度中位数 → 层归属 ────────
+    # SAM masks 按原始顺序（高置信度在前），逐个分配到层
+    # 已分配像素不再被后续低置信度 mask 覆盖
+    assigned = np.zeros((orig_h, orig_w), dtype=bool)
+    layer_masks_bool: list[np.ndarray] = [
+        np.zeros((orig_h, orig_w), dtype=bool) for _ in range(n_layers)
+    ]
+
+    fragment_count = 0
+    for mask_data in sam_masks:
+        seg = mask_data["segmentation"]
+
+        # 仅处理该 mask 中尚未被更高置信度 mask 覆盖的像素
+        new_pixels = seg & ~assigned
+        if new_pixels.sum() < 10:  # 忽略极小新增区域
+            continue
+
+        # 取该 mask 覆盖区域的深度中位数
+        mask_depths = depth_full[seg]
+        if len(mask_depths) == 0:
+            continue
+        median_depth = float(np.median(mask_depths))
+
+        # 等距映射到层索引
+        layer_idx = int(median_depth * n_layers)
+        layer_idx = max(0, min(n_layers - 1, layer_idx))
+
+        # 整块分配到目标层
+        layer_masks_bool[layer_idx][new_pixels] = True
+        assigned[new_pixels] = True
+        fragment_count += 1
+
+    logger.info(
+        "[SAM驱动分层] SAM区块{}/{}已分配 | layers={}",
+        fragment_count, len(sam_masks), n_layers,
+    )
+
+    # ── Step 2: 未覆盖像素 fallback ──────────────────────────
+    uncovered = ~assigned
+    uncovered_pct = uncovered.sum() / uncovered.size * 100
+    if uncovered_pct > 0.1:
+        logger.info(
+            "[SAM驱动分层] {:.1f}% 像素未被SAM覆盖，回退到深度等距量化",
+            uncovered_pct,
+        )
+        raw_masks = quantize_depth(depth_full, n_layers)
+        for i in range(n_layers):
+            fallback = (raw_masks[i] > 0) & uncovered
+            layer_masks_bool[i][fallback] = True
+    elif uncovered_pct > 0:
+        logger.debug(
+            "[SAM驱动分层] {:.1f}% 零星未覆盖像素，扩散填充",
+            uncovered_pct,
+        )
+        # 极小比例 → 用最近邻扩散（dilate 层蒙版覆盖）
+        for i in range(n_layers):
+            if not layer_masks_bool[i].any():
+                continue
+            dilated = cv2.dilate(
+                layer_masks_bool[i].astype(np.uint8),
+                np.ones((3, 3), np.uint8),
+            )
+            layer_masks_bool[i][uncovered & (dilated > 0)] = True
+
+    # ── Step 3: 转 uint8 ─────────────────────────────────────
+    layer_masks_u8 = [m.astype(np.uint8) * 255 for m in layer_masks_bool]
+
+    # ── Step 4: 生成外框 ─────────────────────────────────────
+    frame_mask = generate_frame_mask(orig_h, orig_w, frame_width)
+
+    # ── Step 5: 逐层连通性修复 ───────────────────────────────
+    layer_masks_final: list[np.ndarray] = []
+    stats: list[dict] = []
+
+    for i, raw_u8 in enumerate(layer_masks_u8):
+        repaired, bridges, erased = repair_layer_mask(
+            raw_u8, frame_mask, min_island_area,
+        )
+        layer_masks_final.append(repaired)
+
+        fg = int(np.count_nonzero(repaired))
+        stats.append({
+            "layer_index": i,
+            "fg_pixels": fg,
+            "fg_pct": round(fg / (orig_h * orig_w) * 100, 2),
+            "bridges_built": bridges,
+            "islands_erased": erased,
+        })
+
+    logger.info(
+        "[SAM驱动分层] 完成 | layers={} sam_fragments={} frame={}px "
+        "bridges={} erased={} uncovered={:.1f}%",
+        n_layers, fragment_count, frame_width,
+        sum(s["bridges_built"] for s in stats),
+        sum(s["islands_erased"] for s in stats),
+        uncovered_pct,
+    )
+
+    return layer_masks_final, frame_mask, stats

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LASER Labeler — 开发者标定工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#1a1a2e;color:#e0e0e0;height:100vh;display:flex;overflow:hidden}
+.sidebar{width:220px;min-width:180px;background:#16213e;border-right:1px solid #2a2a4a;padding:12px;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar h3{font-size:13px;color:#a0a0c0;margin-bottom:8px}
+.stats{display:flex;gap:12px;font-size:12px;margin-bottom:8px}
+.stats span{display:flex;align-items:center;gap:4px}
+.img-list{flex:1;overflow-y:auto}
+.img-item{display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;border-radius:3px;font-size:12px;margin-bottom:2px}
+.img-item:hover{background:#2a2a4a}
+.img-item.active{background:#3a3a6a;font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.done{background:#2ECC71}.dot.skipped{background:#F1C40F}.dot.new{background:#3498DB}
+
+/* ── Viewport ─────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;background:#0f0f23;position:relative;overflow:hidden}
+.viewport{flex:1;position:relative;overflow:hidden;cursor:grab}
+.viewport:active{cursor:grabbing}
+.viewport .world{position:absolute;transform-origin:0 0}
+.viewport .world img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
+.world-pane{position:absolute;top:0;left:0;pointer-events:none}
+.placeholder{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#606080;font-size:15px}
+
+/* ── Mode bar ─────────────────────── */
+.mode-bar{display:none;align-items:center;gap:2px;padding:6px 12px;background:#16213e;border-top:1px solid #2a2a4a}
+.mode-bar.show{display:flex}
+.mode-btn{flex:1;padding:4px 0;border:1px solid #3a3a6a;background:#2a2a4a;color:#a0a0c0;cursor:pointer;font-size:11px;text-align:center;border-radius:3px;transition:all 0.15s}
+.mode-btn:hover{border-color:#5a5a8a}
+.mode-btn.active{background:#3498DB;color:#fff;border-color:#3498DB}
+
+/* ── Layer bar (逐层模式) ─────────── */
+.layer-bar{display:none;align-items:center;gap:4px;padding:4px 12px;background:#16213e;flex-wrap:wrap}
+.layer-bar.show{display:flex}
+.lbtn{padding:3px 10px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#a0a0c0;cursor:pointer;font-size:11px;white-space:nowrap}
+.lbtn:hover{border-color:#5a5a8a}
+.lbtn.on{color:#fff;font-weight:600}
+
+/* ── Opacity bar (逐层模式) ────────── */
+.opacity-bar{display:none;align-items:center;gap:8px;padding:4px 12px;background:#16213e;flex-wrap:wrap}
+.opacity-bar.show{display:flex}
+.op-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#a0a0c0}
+.op-item input[type=range]{width:60px;accent-color:#3498DB}
+.op-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Gesture hint ─────────────────── */
+.gesture-hint{display:none;padding:3px 12px;font-size:10px;color:#505070;background:#0f0f23;text-align:center}
+.gesture-hint.show{display:block}
+
+/* ── Controls ─────────────────────── */
+.controls{width:260px;min-width:240px;background:#16213e;border-left:1px solid #2a2a4a;padding:12px;display:flex;flex-direction:column;overflow-y:auto}
+.controls h3{font-size:14px;margin-bottom:4px;word-break:break-all}
+.badge{font-size:11px;padding:2px 7px;border-radius:3px;margin-bottom:8px;display:inline-block}
+.badge.done{background:rgba(46,204,113,0.2);color:#2ECC71}
+.badge.new{background:rgba(52,152,219,0.2);color:#3498DB}
+.badge.skipped{background:rgba(241,196,15,0.2);color:#F1C40F}
+.section{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #2a2a4a}
+.section h4{font-size:12px;color:#a0a0c0;text-transform:uppercase;margin-bottom:6px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#c0c0d0;margin-bottom:6px}
+input[type=range]{width:100%;accent-color:#3498DB}
+select{padding:3px 6px;background:#2a2a4a;color:#e0e0e0;border:1px solid #3a3a6a;border-radius:3px;font-size:12px}
+button{padding:5px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px}
+.btn-rerun{width:100%;background:#2a2a4a;color:#e0e0e0;border:1px solid #3a3a6a;margin-top:4px}
+.score-bar{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px}
+.score-label{width:50px;color:#a0a0c0;flex-shrink:0}
+.score-track{flex:1;height:6px;background:#2a2a4a;border-radius:3px;overflow:hidden}
+.score-fill{height:100%;border-radius:3px}
+.score-val{width:28px;text-align:right;color:#c0c0d0}
+.layer-stat{display:flex;justify-content:space-between;font-size:11px;padding:1px 0;color:#a0a0c0}
+.timing{font-size:10px;color:#8080a0;margin-top:4px}
+.actions{display:flex;gap:6px;margin-bottom:10px}
+.btn-save{flex:1;background:#2ECC71;color:#1a1a2e;font-weight:600;font-size:13px;padding:8px}
+.btn-skip{flex:1;background:#F1C40F;color:#1a1a2e;font-weight:600;font-size:13px;padding:8px}
+.nav{display:flex;align-items:center;justify-content:space-between;font-size:12px}
+.nav button{padding:4px 10px;background:#2a2a4a;color:#e0e0e0;border:1px solid #3a3a6a}
+.nav button:disabled{opacity:0.3;cursor:not-allowed}
+.error{background:rgba(231,76,60,0.2);color:#E74C3C;padding:6px 12px;border-radius:4px;font-size:12px;margin-top:8px}
+.auto-info{font-size:10px;color:#8080a0;margin-top:4px;text-align:center}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <h3>图片列表 (<span id="imgCount">0</span>)</h3>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+    <span id="activeDir" style="font-size:12px;color:#F1C40F;font-weight:600">train</span>
+    <button onclick="switchDir()" style="font-size:10px;padding:2px 6px;background:#2a2a4a;color:#a0a0c0;border:1px solid #3a3a6a;border-radius:3px;cursor:pointer">切换</button>
+  </div>
+  <div class="stats">
+    <span>✅ <b id="statDone">0</b></span>
+    <span>⏭ <b id="statSkipped">0</b></span>
+    <span>🆕 <b id="statNew">0</b></span>
+  </div>
+  <div class="img-list" id="imgList"></div>
+  <button class="btn-rerun" onclick="fetchImages()" style="margin-top:8px">🔄 刷新</button>
+</aside>
+
+<!-- ════ MAIN: viewport + mode bar + layer controls ════ -->
+<div class="main" id="mainWrap">
+  <div class="viewport" id="viewport">
+    <div class="world" id="world"></div>
+    <span class="placeholder" id="placeholder">← 选择图片开始标定</span>
+  </div>
+  <div class="gesture-hint" id="gestureHint">🖱 滚轮缩放 · 拖拽平移 · 双击复位</div>
+  <div class="mode-bar" id="modeBar">
+    <button class="mode-btn" onclick="setMode('orig')">原图</button>
+    <button class="mode-btn active" onclick="setMode('overlay')">彩色叠加</button>
+    <button class="mode-btn" onclick="setMode('layers')">逐层</button>
+    <button class="mode-btn" onclick="setMode('review')">逐层审核 ✏️</button>
+    <button class="mode-btn" onclick="setMode('depth')">深度图</button>
+  </div>
+  <div class="layer-bar" id="layerBar"></div>
+  <div class="opacity-bar" id="opacityBar"></div>
+  <div class="brush-toolbar" id="brushToolbar" style="display:none;align-items:center;gap:6px;padding:4px 12px;background:#16213e;border-top:1px solid #2a2a4a;flex-wrap:wrap">
+    <button class="brush-type-btn active" data-btype="include" onclick="BrushTool.setBrushType('include')" style="padding:3px 10px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#2ECC71;cursor:pointer;font-size:11px">🟢 纳入</button>
+    <button class="brush-type-btn" data-btype="exclude" onclick="BrushTool.setBrushType('exclude')" style="padding:3px 10px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#E74C3C;cursor:pointer;font-size:11px">🔴 排除</button>
+    <span style="font-size:10px;color:#a0a0c0">笔刷:</span>
+    <input type="range" id="brushSize" min="5" max="100" value="20" style="width:70px;accent-color:#3498DB" oninput="BrushTool.brushSize=+this.value;document.getElementById('brushSizeVal').textContent=this.value+'px'">
+    <span id="brushSizeVal" style="font-size:10px;color:#a0a0c0;min-width:30px">20px</span>
+    <button id="btnApplySam" onclick="applyBrushSam()" style="padding:3px 10px;border:none;border-radius:3px;background:#3498DB;color:#fff;cursor:pointer;font-size:11px;font-weight:600">应用SAM</button>
+    <button onclick="BrushTool.undo()" style="padding:3px 8px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#a0a0c0;cursor:pointer;font-size:11px">↩ 撤销</button>
+    <button onclick="BrushTool.resetLayer()" style="padding:3px 8px;border:1px solid #3a3a6a;border-radius:3px;background:#2a2a4a;color:#E74C3C;cursor:pointer;font-size:11px">重置本层</button>
+    <span style="font-size:10px;color:#8080a0;margin-left:8px">笔刷: <b id="brushCount">0</b> | Ctrl+Z 撤销</span>
+  </div>
+</div>
+
+<aside class="controls" id="controls" style="display:none">
+  <h3 id="ctrlName">—</h3>
+  <span class="badge" id="ctrlBadge">新</span>
+
+  <div class="section">
+    <h4>手动参数（覆盖自动推断）</h4>
+    <label>层数: <b id="valN">—</b>
+      <input type="range" id="nLayers" min="2" max="6" value="3" oninput="onParam()">
+    </label>
+    <label>外框: <b id="valF">50</b>px
+      <input type="range" id="frameWidth" min="20" max="200" value="50" oninput="onParam()">
+    </label>
+    <label>最小岛: <b id="valI">100</b>px²
+      <input type="range" id="minIsland" min="10" max="5000" step="10" value="100" oninput="onParam()">
+    </label>
+    <label>质量:
+      <select id="quality" onchange="onParam()">
+        <option value="draft">draft (无SAM)</option>
+        <option value="standard" selected>standard</option>
+        <option value="fine">fine</option>
+      </select>
+    </label>
+    <div class="auto-info" id="autoInfo"></div>
+    <button class="btn-rerun" onclick="runSegManual()" id="btnRun" style="background:#3498DB;color:#fff;font-weight:600">
+      ▶ 开始分割
+    </button>
+  </div>
+
+  <div class="section">
+    <h4>批量</h4>
+    <button class="btn-rerun" onclick="batchRun()" id="btnBatch" style="background:#E67E22;color:#fff">
+      ⚡ 批量处理新图
+    </button>
+    <div id="batchProgress" style="display:none;margin-top:6px;font-size:11px;color:#a0a0c0"></div>
+  </div>
+
+  <div class="section" id="scoreSection" style="display:none">
+    <h4>评分</h4>
+    <div id="scores"></div>
+  </div>
+
+  <div class="section" id="statSection" style="display:none">
+    <h4>层统计</h4>
+    <div id="layerStats"></div>
+    <div class="timing" id="timing"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-save" onclick="handleSave()">✅ 确认标定</button>
+    <button class="btn-skip" onclick="handleSkip()">⏭ 跳过</button>
+  </div>
+
+  <div class="nav">
+    <button onclick="nav(-1)">← 上一张</button>
+    <span id="navPos">0/0</span>
+    <button onclick="nav(1)">下一张 →</button>
+  </div>
+
+  <div class="error" id="error" style="display:none"></div>
+</aside>
+
+<script src="/brush_tool.js"></script>
+<script>
+const API = '';
+let images = [], curIdx = -1, segResult = null, curImageName = '';
+let viewMode = 'overlay';  // orig | overlay | layers
+let layerVis = { orig: true, layers: [] };
+let layerOpacities = { orig: 100, layers: [] };
+
+/* ── API ───────────────────────────── */
+async function api(url, opts) {
+  const r = await fetch(API + url, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+/* ── Image list ────────────────────── */
+async function fetchImages() {
+  try {
+    const d = await api('/api/images');
+    images = d.images;
+    document.getElementById('imgCount').textContent = images.length;
+    document.getElementById('statDone').textContent = d.stats.done;
+    document.getElementById('statSkipped').textContent = d.stats.skipped;
+    document.getElementById('statNew').textContent = d.stats.new;
+    document.getElementById('activeDir').textContent = d.active_subdir || 'train';
+    renderList();
+  } catch(e) { showErr(e.message); }
+}
+
+async function switchDir() {
+  const cfg = await api('/api/config');
+  const dirs = cfg.available_subdirs || ['train','val'];
+  const cur = cfg.active_subdir || 'train';
+  const next = dirs.find(d => d !== cur) || dirs[0];
+  await api('/api/switch-dir', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({image_dir: next})});
+  curIdx = -1; segResult = null; resetViewport();
+  document.getElementById('controls').style.display = 'none';
+  hideAllControls();
+  fetchImages();
+}
+
+function renderList() {
+  const el = document.getElementById('imgList');
+  el.innerHTML = images.map((img, i) =>
+    `<div class="img-item${i===curIdx?' active':''}" onclick="select(${i})">
+      <span class="dot ${img.status}"></span>${img.name.length>25?'…'+img.name.slice(-22):img.name}
+    </div>`).join('');
+  document.getElementById('navPos').textContent = `${curIdx+1}/${images.length}`;
+}
+
+/* ── Select → show original ──────────── */
+async function select(i) {
+  curIdx = i; segResult = null;
+  curImageName = images[i].name;
+  resetViewport();
+  viewMode = 'orig';
+  document.getElementById('controls').style.display = 'flex';
+  document.getElementById('scoreSection').style.display = 'none';
+  document.getElementById('statSection').style.display = 'none';
+  hideAllControls();
+  const img = images[i];
+  document.getElementById('ctrlName').textContent = img.name;
+  const badge = document.getElementById('ctrlBadge');
+  badge.textContent = img.status==='done'?'已标定':img.status==='skipped'?'已跳过':'新';
+  badge.className = 'badge '+img.status;
+  renderList();
+  showOriginal(`/images/${encodeURI(img.name)}`);
+  document.getElementById('btnRun').textContent = '▶ 开始分割';
+  document.getElementById('btnRun').disabled = false;
+  showAutoInfo('');
+}
+
+/* ── Manual segmentation ─────────────── */
+async function runSegManual() {
+  const img = images[curIdx];
+  if (!img) return;
+  const isFirstRun = !segResult;
+  document.getElementById('btnRun').textContent = isFirstRun ? '⏳ 预测+分割中…' : '⏳ 重新分割中…';
+  document.getElementById('btnRun').disabled = true;
+  hideAllControls();
+  try {
+    showErr('');
+    if (isFirstRun) {
+      // 首次：ML 预测参数 + 分割
+      segResult = await api('/api/auto-segment', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({image_name: img.name})
+      });
+      // 回填参数到滑块（层数由后端自动推断填充）
+      const pp = segResult.predicted_params || {};
+      const nL = segResult.suggested_n_layers || pp.n_layers || 3;
+      document.getElementById('nLayers').value = nL;
+      document.getElementById('frameWidth').value = pp.frame_width || 50;
+      document.getElementById('minIsland').value = pp.min_island_area || 100;
+      document.getElementById('quality').value = pp.quality || 'standard';
+      onParam();
+      showAutoInfo(`🤖 自动推断: ${nL}层 fw=${pp.frame_width||50} ia=${pp.min_island_area||100} ${pp.quality||'standard'}`);
+    } else {
+      // 重跑：用当前滑块值（用户可手动调整层数）
+      const params = {
+        n_layers: +document.getElementById('nLayers').value,
+        frame_width: +document.getElementById('frameWidth').value,
+        min_island_area: +document.getElementById('minIsland').value,
+        quality: document.getElementById('quality').value,
+      };
+      segResult = await api('/api/segment', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({image_name: img.name, ...params})
+      });
+      const nL = segResult.suggested_n_layers || segResult.params?.n_layers || params.n_layers;
+      document.getElementById('nLayers').value = nL;
+      onParam();
+      showAutoInfo(`🔧 手动参数: ${nL}层 fw=${params.frame_width} ia=${params.min_island_area} ${params.quality}`);
+    }
+    curImageName = img.name;
+    setMode('overlay');
+    showAllControls();
+    renderScores(segResult.scores);
+    renderStats(segResult.stats);
+    document.getElementById('timing').textContent =
+      '⏱ ' + (segResult.elapsed_ms||0) + 'ms' + (segResult.depth_cached?' (缓存)':'');
+  } catch(e) { showErr('分割失败: '+e.message); showOriginal(`/images/${encodeURI(img.name)}`); }
+  document.getElementById('btnRun').disabled = false;
+  document.getElementById('btnRun').textContent = '🔄 重新分割';
+}
+
+function showAutoInfo(msg) {
+  document.getElementById('autoInfo').textContent = msg;
+}
+
+/* ── Batch ─────────────────────────── */
+async function batchRun() {
+  const news = images.filter(img => img.status === 'new');
+  if (news.length === 0) { alert('没有待处理的新图'); return; }
+  if (!confirm(`将对 ${news.length} 张新图批量分割（每张独立 ML 预测参数），继续？`)) return;
+  const prog = document.getElementById('batchProgress');
+  const btn = document.getElementById('btnBatch');
+  prog.style.display = 'block'; btn.disabled = true;
+  for (let j = 0; j < news.length; j++) {
+    const img = news[j];
+    prog.textContent = `⏳ ${j+1}/${news.length}: ${img.name}`;
+    try {
+      const seg = await api('/api/auto-segment', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({image_name: img.name})
+      });
+      await api('/api/save', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          image_name: img.name,
+          n_layers: seg.predicted_params?.n_layers || seg.params.n_layers,
+          frame_width: seg.predicted_params?.frame_width || seg.params.frame_width,
+          min_island_area: seg.predicted_params?.min_island_area || seg.params.min_island_area,
+          quality: seg.predicted_params?.quality || seg.params.quality,
+          scores: seg.scores, features: seg.features,
+        })
+      });
+      img.status = 'done';
+    } catch(e) { img.status = 'skipped'; }
+  }
+  prog.textContent = `✅ 完成: ${news.length} 张`;
+  btn.disabled = false;
+  renderList(); fetchImages();
+  if (images[curIdx]) select(curIdx);
+}
+
+/* ── Three-mode view ────────────────── */
+function setMode(mode) {
+  viewMode = mode;
+  // Highlight active button
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    const modes = ['orig','overlay','layers','review','depth'];
+    b.classList.toggle('active', modes.indexOf(mode) === i);
+  });
+  // Show/hide per-layer controls
+  const showLayers = mode === 'layers' || mode === 'review';
+  document.getElementById('layerBar').classList.toggle('show', showLayers);
+  document.getElementById('opacityBar').classList.toggle('show', showLayers);
+
+  // Brush mode
+  if (mode === 'review') {
+    if (segResult) {
+      const layers = segResult.layers || [];
+      if (layers.length > 0) {
+        const img = document.querySelector('#world img');
+        BrushTool.init();
+        BrushTool.enable(img ? img.naturalWidth : 800, img ? img.naturalHeight : 600);
+        setReviewLayer(0);
+      }
+    }
+  } else {
+    BrushTool.disable();
+  }
+
+  if (segResult) renderByMode();
+  else if (mode === 'depth') renderDepthView();  // 深度图不需要分割结果
+}
+
+function renderByMode() {
+  if (!segResult) return;
+  switch (viewMode) {
+    case 'orig': renderOrigView(); break;
+    case 'overlay': renderOverlayView(); break;
+    case 'layers': case 'review': renderLayersView(); break;
+    case 'depth': renderDepthView(); break;
+  }
+}
+
+function renderOrigView() {
+  const world = document.getElementById('world');
+  world.innerHTML = `<img src="/images/${encodeURI(curImageName)}" alt="原图" onload="onWorldImgLoad()">`;
+  document.getElementById('placeholder').style.display = 'none';
+  doCentering();
+}
+
+function renderOverlayView() {
+  const world = document.getElementById('world');
+  world.innerHTML = `<img src="${segResult.overlay_url}" alt="叠加" onload="onWorldImgLoad()">`;
+  document.getElementById('placeholder').style.display = 'none';
+  doCentering();
+}
+
+function renderDepthView() {
+  const world = document.getElementById('world');
+  world.innerHTML = `<img src="/api/depth-preview?image_name=${encodeURIComponent(curImageName)}" alt="深度图" onload="onWorldImgLoad()"
+    style="display:block;max-width:100%;height:auto">`;
+  document.getElementById('placeholder').style.display = 'none';
+  doCentering();
+}
+
+function renderLayersView() {
+  const world = document.getElementById('world');
+  const layers = segResult.layers || [];
+  layerVis = { orig: true, layers: layers.map(() => true) };
+  layerOpacities = { orig: 100, layers: layers.map(() => 100) };
+
+  let html = '';
+  // 原图层
+  html += `<div class="world-pane" data-pane="orig" style="opacity:1">
+    <img src="/images/${encodeURI(curImageName)}" alt="原图" onload="onWorldImgLoad()">
+  </div>`;
+  // 逐层 canvas（替代 CSS mask-image）
+  layers.forEach((l, i) => {
+    html += `<div class="world-pane" data-pane="layer${i}" style="opacity:1">
+      <canvas id="layerCanvas${i}" style="display:block"></canvas>
+    </div>`;
+  });
+  world.innerHTML = html;
+  document.getElementById('placeholder').style.display = 'none';
+
+  // 异步渲染每个 canvas
+  layers.forEach((l, i) => {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.getElementById('layerCanvas' + i);
+      if (!canvas) return;
+      canvas.width = this.naturalWidth;
+      canvas.height = this.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      // 绘制蒙版到 canvas
+      ctx.drawImage(this, 0, 0);
+      // 获取像素数据，将白色替换为层颜色，黑色设为透明
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const rgb = l.color.match(/\d+/g).map(Number); // [r, g, b]
+      for (let p = 0; p < data.length; p += 4) {
+        if (data[p] > 128) { // 白色区域 → 层颜色
+          data[p] = rgb[0];
+          data[p + 1] = rgb[1];
+          data[p + 2] = rgb[2];
+          data[p + 3] = 255;
+        } else { // 黑色区域 → 透明
+          data[p + 3] = 0;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      // 首次渲染完成后做一次居中
+      if (i === 0) doCentering();
+    };
+    img.src = l.frame_url;
+  });
+
+  // 图层开关栏
+  const bar = document.getElementById('layerBar');
+  let btns = `<button class="lbtn on" onclick="toggleOrig()" style="border-left:3px solid #aaa">✓ 原图</button>`;
+  layers.forEach((l, i) => {
+    btns += `<button class="lbtn on" id="lbtn${i}" onclick="${viewMode==='review'?`setReviewLayer(${i})`:`toggleLayer(${i})`}" style="border-left:3px solid ${l.color}">
+      ✓ ${l.label} (${l.fg_pct}%)
+    </button>`;
+  });
+  bar.innerHTML = btns;
+
+  // 透明度栏（不变）
+  const obar = document.getElementById('opacityBar');
+  let ohtml = `<div class="op-item"><span class="op-dot" style="background:#aaa"></span>原图
+    <input type="range" min="0" max="100" value="100" oninput="setOrigOpacity(this.value)"></div>`;
+  layers.forEach((l, i) => {
+    ohtml += `<div class="op-item"><span class="op-dot" style="background:${l.color}"></span>${l.label}
+      <input type="range" min="0" max="100" value="100" oninput="setLayerOpacity(${i},this.value)"></div>`;
+  });
+  obar.innerHTML = ohtml;
+}
+
+function toggleOrig() {
+  layerVis.orig = !layerVis.orig;
+  const btn = document.querySelector('#layerBar .lbtn');
+  btn.classList.toggle('on', layerVis.orig);
+  btn.innerHTML = (layerVis.orig ? '✓ ' : '') + '原图';
+  applyLayerVisibility();
+}
+
+function toggleLayer(i) {
+  layerVis.layers[i] = !layerVis.layers[i];
+  const btn = document.getElementById('lbtn' + i);
+  btn.classList.toggle('on', layerVis.layers[i]);
+  const l = segResult.layers[i];
+  btn.innerHTML = (layerVis.layers[i] ? '✓ ' : '') + l.label + ' (' + l.fg_pct + '%)';
+  applyLayerVisibility();
+}
+
+function setOrigOpacity(v) { layerOpacities.orig = +v; applyLayerVisibility(); }
+function setLayerOpacity(i, v) { layerOpacities.layers[i] = +v; applyLayerVisibility(); }
+
+function applyLayerVisibility() {
+  document.querySelectorAll('.world-pane').forEach(p => {
+    const name = p.getAttribute('data-pane');
+    if (name === 'orig') {
+      p.style.opacity = layerVis.orig ? (layerOpacities.orig / 100) : '0';
+    } else if (name && name.startsWith('layer')) {
+      const idx = +name.slice(5);
+      p.style.opacity = layerVis.layers[idx] ? (layerOpacities.layers[idx] / 100) : '0';
+    }
+  });
+}
+
+/* ── Old render for original select ── */
+function showOriginal(url) {
+  const world = document.getElementById('world');
+  world.innerHTML = `<img src="${url}" alt="原图" onload="onWorldImgLoad()">`;
+  document.getElementById('placeholder').style.display = 'none';
+  doCentering();
+}
+
+/* ── Centering ─────────────────────── */
+function onWorldImgLoad() { doCentering(); }
+
+function doCentering() {
+  const world = document.getElementById('world');
+  const img = world.querySelector('img');
+  if (!img || !img.naturalWidth) { setTimeout(doCentering, 50); return; }
+  const vp = document.getElementById('viewport');
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  const fitScale = Math.min(vw / img.naturalWidth, vh / img.naturalHeight, 1) * 0.9;
+  zoom.scale = fitScale;
+  zoom.x = (vw - img.naturalWidth * fitScale) / 2;
+  zoom.y = (vh - img.naturalHeight * fitScale) / 2;
+  applyTransform();
+}
+
+/* ── Zoom/Pan ──────────────────────── */
+const zoom = { scale: 1, x: 0, y: 0 };
+let panning = false, panStart = { x: 0, y: 0, tx: 0, ty: 0 };
+const MIN_SCALE = 0.1, MAX_SCALE = 10, WHEEL_STEP = 0.1;
+
+function applyTransform() {
+  document.getElementById('world').style.transform =
+    `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`;
+}
+
+function resetViewport() {
+  zoom.scale = 1; zoom.x = 0; zoom.y = 0;
+  applyTransform();
+  document.getElementById('placeholder').style.display = 'block';
+  document.getElementById('world').innerHTML = '';
+}
+
+function showPlaceholder(text) {
+  const ph = document.getElementById('placeholder');
+  ph.textContent = text; ph.style.display = 'block';
+}
+
+function hideAllControls() {
+  document.getElementById('modeBar').classList.remove('show');
+  document.getElementById('layerBar').classList.remove('show');
+  document.getElementById('opacityBar').classList.remove('show');
+  document.getElementById('gestureHint').classList.remove('show');
+}
+
+function showAllControls() {
+  document.getElementById('modeBar').classList.add('show');
+  document.getElementById('gestureHint').classList.add('show');
+}
+
+// Wheel zoom
+document.getElementById('viewport').addEventListener('wheel', function(e) {
+  e.preventDefault();
+  const rect = this.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  const delta = e.deltaY > 0 ? -WHEEL_STEP : WHEEL_STEP;
+  const s = Math.min(MAX_SCALE, Math.max(MIN_SCALE, zoom.scale * (1 + delta)));
+  const r = s / zoom.scale;
+  zoom.x = cx - r * (cx - zoom.x);
+  zoom.y = cy - r * (cy - zoom.y);
+  zoom.scale = s;
+  applyTransform();
+}, { passive: false });
+
+// Pan
+const vp = document.getElementById('viewport');
+vp.addEventListener('mousedown', function(e) {
+  if (e.button !== 0) return;
+  panning = true;
+  panStart = { x: e.clientX, y: e.clientY, tx: zoom.x, ty: zoom.y };
+  e.preventDefault();
+});
+window.addEventListener('mousemove', function(e) {
+  if (!panning) return;
+  zoom.x = panStart.tx + (e.clientX - panStart.x);
+  zoom.y = panStart.ty + (e.clientY - panStart.y);
+  applyTransform();
+});
+window.addEventListener('mouseup', function() { panning = false; });
+
+// Double-click fit
+vp.addEventListener('dblclick', function(e) {
+  const img = document.getElementById('world').querySelector('img');
+  if (!img || !img.naturalWidth) return;
+  const rect = this.getBoundingClientRect();
+  const fitScale = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight, 1) * 0.9;
+  zoom.scale = fitScale;
+  zoom.x = (rect.width - img.naturalWidth * fitScale) / 2;
+  zoom.y = (rect.height - img.naturalHeight * fitScale) / 2;
+  applyTransform();
+});
+
+/* ── Scores / Stats ────────────────── */
+function renderScores(sc) {
+  const el = document.getElementById('scores');
+  el.innerHTML = [
+    ['综合分', sc.combined_score, '#2ECC71'],
+    ['层均衡', sc.layer_balance, '#3498DB'],
+    ['桥接效率', sc.bridge_efficiency, '#F1C40F'],
+    ['碎片纯净', sc.island_purity, '#E74C3C'],
+    ['覆盖率', sc.coverage_efficiency, '#9B59B6'],
+  ].map(([l,v,c]) => `<div class="score-bar"><span class="score-label">${l}</span>
+    <div class="score-track"><div class="score-fill" style="width:${Math.round(v*100)}%;background:${c}"></div></div>
+    <span class="score-val">${Math.round(v*100)}</span></div>`).join('');
+  document.getElementById('scoreSection').style.display = 'block';
+}
+
+function renderStats(stats) {
+  const colors = ['#E74C3C','#2ECC71','#3498DB','#F1C40F','#9B59B6'];
+  document.getElementById('layerStats').innerHTML = stats.map(s =>
+    `<div class="layer-stat"><span style="color:${colors[s.layer_index]}">层${s.layer_index}</span>
+    <span>${s.fg_pct}% | 桥${s.bridges_built} 碎${s.islands_erased}</span></div>`).join('');
+  document.getElementById('statSection').style.display = 'block';
+}
+
+/* ── Save / Skip ───────────────────── */
+async function handleSave() {
+  if (!segResult) return;
+  const img = images[curIdx];
+  try {
+    await api('/api/save', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        image_name: img.name, n_layers: segResult.params.n_layers,
+        frame_width: segResult.params.frame_width,
+        min_island_area: segResult.params.min_island_area,
+        quality: segResult.params.quality, scores: segResult.scores, features: segResult.features,
+      })
+    });
+    images[curIdx].status = 'done';
+    document.getElementById('ctrlBadge').textContent = '已标定';
+    document.getElementById('ctrlBadge').className = 'badge done';
+    renderList(); fetchImages();
+  } catch(e) { showErr('保存失败: '+e.message); }
+}
+
+async function handleSkip() {
+  try {
+    await api('/api/skip', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({image_name: images[curIdx].name})
+    });
+    images[curIdx].status = 'skipped';
+    document.getElementById('ctrlBadge').textContent = '已跳过';
+    document.getElementById('ctrlBadge').className = 'badge skipped';
+    renderList(); fetchImages();
+  } catch(e) { showErr('跳过失败: '+e.message); }
+}
+
+/* ── Navigation ────────────────────── */
+function nav(d) { const ni = curIdx + d; if (ni >= 0 && ni < images.length) select(ni); }
+function onParam() {
+  document.getElementById('valN').textContent = document.getElementById('nLayers').value;
+  document.getElementById('valF').textContent = document.getElementById('frameWidth').value;
+  document.getElementById('valI').textContent = document.getElementById('minIsland').value;
+}
+function showErr(msg) {
+  const el = document.getElementById('error');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowLeft') nav(-1);
+  if (e.key === 'ArrowRight') nav(1);
+});
+
+/* ── Brush review helpers ─────────── */
+let reviewActiveLayer = 0;
+
+function setReviewLayer(idx) {
+  reviewActiveLayer = idx;
+  // Highlight the active layer button
+  document.querySelectorAll('#layerBar .lbtn').forEach((btn, i) => {
+    btn.style.outline = (i === idx + 1) ? '2px solid #F1C40F' : 'none';
+  });
+  // Show only the active layer at full opacity, dim others
+  document.querySelectorAll('.world-pane').forEach(p => {
+    const name = p.getAttribute('data-pane');
+    if (name === 'orig') {
+      p.style.opacity = '0.3';
+    } else if (name && name.startsWith('layer')) {
+      const li = +name.slice(5);
+      p.style.opacity = li === idx ? '1' : '0.15';
+    }
+  });
+  // Enable brush
+  BrushTool.clearStrokes();
+}
+
+function applyBrushSam() {
+  if (!segResult) return;
+  const maskKey = segResult.overlay_url.match(/preview\/(.+?)_n\d+/);
+  const key = maskKey ? maskKey[1] : curImageName.replace(/\.\w+$/, '');
+  // Build the full key from overlay_url stem
+  const ovStem = segResult.overlay_url.split('/').pop().replace('.png','');
+  BrushTool.applySam(reviewActiveLayer, ovStem.replace(/_n\d+.*/, ''));
+}
+
+function refreshLayerDisplay(idx) {
+  // Reload the specific layer's frame image
+  if (!segResult || !segResult.layers) return;
+  const layer = segResult.layers[idx];
+  const canvas = document.getElementById('layerCanvas' + idx);
+  if (!canvas) return;
+
+  const img = new Image();
+  img.onload = function() {
+    canvas.width = this.naturalWidth;
+    canvas.height = this.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(this, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const rgb = layer.color.match(/\d+/g).map(Number);
+    for (let p = 0; p < data.length; p += 4) {
+      if (data[p] > 128) {
+        data[p] = rgb[0]; data[p+1] = rgb[1]; data[p+2] = rgb[2];
+        data[p+3] = 255;
+      } else { data[p+3] = 0; }
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
+  img.src = layer.frame_url + '?t=' + Date.now();  // cache bust
+}
+
+function resetLayerDisplay() {
+  if (segResult) renderByMode();
+  if (viewMode === 'review') setReviewLayer(reviewActiveLayer);
+}
+
+fetchImages();
+</script>
+</body>
+</html>

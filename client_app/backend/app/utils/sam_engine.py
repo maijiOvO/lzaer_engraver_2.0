@@ -276,6 +276,7 @@ def _snap_mask_to_edges(
 def run_sam_automatic(
     image: np.ndarray,
     max_dim: int | None = None,
+    cache_path: str | None = None,
 ) -> tuple[list[dict], np.ndarray]:
     """Run MobileSAM AutomaticMaskGenerator on an image.
 
@@ -283,6 +284,8 @@ def run_sam_automatic(
         image: BGR numpy array (H, W, 3) uint8 — as loaded by cv2.imread.
         max_dim: maximum dimension for SAM processing. Default 1200
             (paper_sculpture preset). Set lower for faster processing.
+        cache_path: if provided, save/load compressed region_map cache
+            (.npz) to avoid re-running SAM on the same image.
 
     Returns:
         (masks, region_map) where:
@@ -291,6 +294,19 @@ def run_sam_automatic(
         - region_map: (H, W) int32 label map. 0=background, 1..N=fragments.
     """
     from loguru import logger
+
+    # ── Cache hit: load from disk ────────────────────────────
+    if cache_path and os.path.exists(cache_path):
+        logger.info("[SAM引擎] 缓存命中 | path={}", cache_path)
+        try:
+            data = np.load(cache_path, allow_pickle=True)
+            region_map = data["region_map"]
+            mask_meta = data["mask_meta"]
+            masks = _reconstruct_masks(region_map, mask_meta)
+            logger.info("[SAM引擎] 从缓存重建 {} 个mask", len(masks))
+            return masks, region_map
+        except Exception as e:
+            logger.warning("[SAM引擎] 缓存损坏，重新推理 | {}", e)
 
     _max_dim = max_dim or PAPER_SCULPTURE_PRESET.get("max_sam_dim", 1200)
 
@@ -402,7 +418,39 @@ def run_sam_automatic(
 
     logger.debug("[SAM引擎] 完成: {}个mask, region_map shape={}",
                  len(masks), region_map.shape)
+
+    # ── Cache save ──────────────────────────────────────────
+    if cache_path:
+        try:
+            mask_meta = []
+            for m in masks:
+                mask_meta.append({
+                    "area": int(m.get("area", 0)),
+                    "bbox": [int(v) for v in m.get("bbox", [0, 0, 0, 0])],
+                })
+            tmp = cache_path + ".tmp.npz"
+            np.savez_compressed(tmp, region_map=region_map, mask_meta=np.array(mask_meta, dtype=object))
+            os.replace(tmp, cache_path)
+            logger.info("[SAM引擎] 缓存已保存 | path={}", cache_path)
+        except Exception as e:
+            logger.warning("[SAM引擎] 缓存保存失败 | {}", e)
+
     return masks, region_map
+
+
+def _reconstruct_masks(region_map: np.ndarray, mask_meta: np.ndarray) -> list[dict]:
+    """从 region_map 和 metadata 重建 SAM masks 列表。"""
+    masks: list[dict] = []
+    n = region_map.max()
+    for i in range(1, n + 1):
+        seg = region_map == i
+        meta = mask_meta[i - 1] if i <= len(mask_meta) else {}
+        masks.append({
+            "segmentation": seg,
+            "area": int(meta.get("area", seg.sum())),
+            "bbox": [int(v) for v in meta.get("bbox", [0, 0, 0, 0])],
+        })
+    return masks
 
 
 def refine_mask(
@@ -474,6 +522,9 @@ def refine_mask(
     )
     # 转为 logits: 正例 logits=+4, 负例 logits=-4
     mask_logits = (mask_256 - 0.5) * 8.0
+    # squeeze 掉多余的 batch dim — predictor 内部会自行添加
+    # (1, 1, 256, 256) → (1, 256, 256)，否则 predictor 二次包装成 5D 报错
+    mask_logits = mask_logits.squeeze(0)
 
     # ── SAM 推理 ───────────────────────────────────────────
     with torch.inference_mode():
@@ -484,8 +535,8 @@ def refine_mask(
             multimask_output=False,
         )
 
-    # masks[0] 是 (1, sam_H, sam_W) bool tensor
-    refined_sam = masks[0].cpu().numpy()
+    # masks[0] 可能是 torch tensor 或 numpy array（取决于设备/追踪路径）
+    refined_sam = np.asarray(masks[0])
     score = float(scores[0])
     logger.debug("[SAM精修]   置信度={:.3f}", score)
 
@@ -502,6 +553,17 @@ def refine_mask(
         "[SAM精修] 完成 | refined_fg={:.1f}%",
         100 * refined.sum() / refined.size,
     )
+
+    # ── 质量门：SAM 不可信时退回原始蒙版 ───────────────────
+    refined_fg_pct = refined.sum() / refined.size
+    rough_fg_pct = rough_bin.sum() / rough_bin.size
+    if score < 0.5 or refined_fg_pct < rough_fg_pct * 0.1:
+        logger.debug(
+            "[SAM精修] 不可信 (置信度={:.3f} refined={:.1f}% rough={:.1f}%) → 使用原始蒙版",
+            score, 100 * refined_fg_pct, 100 * rough_fg_pct,
+        )
+        return rough_bin
+
     return refined
 
 

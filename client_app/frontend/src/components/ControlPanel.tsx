@@ -128,7 +128,7 @@ export default function ControlPanel(props: Props) {
           <>
             <p className="step-hint">深度引导结构分层 — AI 识别空间结构，自动切割为可支撑的图层</p>
             <Slider label={`分割层数: ${nLayers}`} min={2} max={5}
-              value={nLayers} disabled={segmentLoading}
+              value={segmentResult ? segmentResult.layers.length : nLayers} disabled={segmentLoading}
               onChange={onChangeNLayers} />
             <Select label="质量预设" value={samQuality}
               options={SAM_QUALITY_OPTIONS}

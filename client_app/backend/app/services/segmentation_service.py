@@ -33,9 +33,19 @@ except ImportError:
     build_structural_layers = None
 
 try:
+    from app.utils.structural_segmentation import build_sam_driven_layers
+except ImportError:
+    build_sam_driven_layers = None
+
+try:
     from app.utils.sam_engine import refine_mask as _sam_refine
 except ImportError:
     _sam_refine = None
+
+try:
+    from app.utils.sam_engine import run_sam_automatic as _sam_auto
+except ImportError:
+    _sam_auto = None
 
 # ── Overlay colors (BGR) for up to 5 layers ──────────────────────────
 LAYER_COLORS = [
@@ -202,21 +212,67 @@ def process_segment(params: SegmentParams) -> SegmentResponse:
     else:
         depth_elapsed = 0
 
-    # ── 3. 结构分层 ─────────────────────────────────────────────
-    logger.info("[结构分层] 构建{}层结构蒙版 …", params.n_layers)
-    layer_t0 = time.perf_counter()
+    # ── 自动推断最优层数 ─────────────────────────────────────────
+    n_layers = params.n_layers
     try:
-        layer_masks, frame_mask, layer_stats = build_structural_layers(
-            depth_map,
-            n_layers=params.n_layers,
-            frame_width=params.frame_width,
-            min_island_area=params.min_island_area,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"结构分层失败 | 原因: {type(e).__name__}: {e}",
-        )
+        from app.utils.structural_segmentation import suggest_n_layers
+        suggested_n = int(suggest_n_layers(depth_map))
+        if n_layers == 3 and suggested_n != 3:
+            n_layers = suggested_n
+            logger.info("[结构分层] 自动推断层数 | suggested={}", suggested_n)
+    except ImportError:
+        pass
+
+    # ── 3. 结构分层 ─────────────────────────────────────────────
+    engine = getattr(params, "engine", "depth_quantize")
+    # sam_driven 模式下限死 3 层
+    if engine == "sam_driven" and n_layers > 3:
+        n_layers = 3
+    logger.info("[结构分层] 构建{}层结构蒙版 | engine={} …", n_layers, engine)
+    layer_t0 = time.perf_counter()
+
+    if engine == "sam_driven":
+        # 新管线：SAM 自动分割 → 深度中位数归属 → 连通修复
+        if _sam_auto is None:
+            raise HTTPException(
+                status_code=501,
+                detail="SAM自动分割引擎未安装 — 检查 app/utils/sam_engine.py",
+            )
+        if build_sam_driven_layers is None:
+            raise HTTPException(
+                status_code=501,
+                detail="SAM驱动分层引擎未安装 — 检查 app/utils/structural_segmentation.py",
+            )
+        sam_cache = os.path.join(OUTPUTS_DIR, f"{params.image_id}_sam_region.npz")
+        sam_masks, _region_map = _sam_auto(image, cache_path=sam_cache)
+        try:
+            layer_masks, frame_mask, layer_stats = build_sam_driven_layers(
+                sam_masks, depth_map,
+                n_layers=n_layers,
+                image_shape=(orig_h, orig_w),
+                frame_width=params.frame_width,
+                min_island_area=params.min_island_area,
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"SAM驱动分层失败 | 原因: {type(e).__name__}: {e}",
+            )
+        sam_driven = True
+    else:
+        try:
+            layer_masks, frame_mask, layer_stats = build_structural_layers(
+                depth_map,
+                n_layers=n_layers,
+                frame_width=params.frame_width,
+                min_island_area=params.min_island_area,
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"结构分层失败 | 原因: {type(e).__name__}: {e}",
+            )
+        sam_driven = False
     layer_elapsed = int((time.perf_counter() - layer_t0) * 1000)
 
     for s in layer_stats:
@@ -226,9 +282,9 @@ def process_segment(params: SegmentParams) -> SegmentResponse:
             s["bridges_built"], s["islands_erased"],
         )
 
-    # ── 4. SAM 逐层精修 ─────────────────────────────────────────
+    # ── 4. SAM 逐层精修（sam_driven 模式下已在 Step 3 完成）──
     refine_ms = 0
-    if enable_refine and _sam_refine is not None:
+    if enable_refine and _sam_refine is not None and not sam_driven:
         logger.info("[结构分层] SAM 逐层边界精修 …")
         refine_t0 = time.perf_counter()
 
@@ -335,7 +391,7 @@ def process_segment(params: SegmentParams) -> SegmentResponse:
     logger.info(
         "[结构分层] 完成 | layers={} total={}ms "
         "(depth={}ms layers={}ms refine={}ms)",
-        params.n_layers, elapsed_ms,
+        n_layers, elapsed_ms,
         depth_elapsed, layer_elapsed, refine_ms,
     )
 
