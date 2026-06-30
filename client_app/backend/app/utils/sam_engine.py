@@ -288,46 +288,76 @@ def _build_region_map_from_masks(
 
 
 def _snap_mask_to_edges(
-    mask: np.ndarray,         # bool (H, W) — already upscaled to original res
-    original_bgr: np.ndarray,  # BGR uint8 (H, W) — original image
-    edge_band: int = 3,
+    mask: np.ndarray,
+    original_bgr: np.ndarray,
+    edge_band: int = 5,
 ) -> np.ndarray:
-    """Snap mask boundaries to the original image's natural edges.
-
-    After smooth upscaling, mask edges are anti-aliased but blind to
-    image content.  This step uses the original image gradient to
-    nudge boundaries toward real edges, improving edge precision
-    especially for draft-mode (low SAM resolution) masks.
+    """
+    使用导向滤波 (Guided Filter) 实现像素级的物理边缘吸附。
+    利用高分原图作为引导，将掩码边缘完美对齐到复杂的真实结构（如铁塔钢架、天线）上，
+    彻底消除 GrabCut 带来的块状伪影。
     """
     if mask.sum() == 0 or mask.sum() == mask.size:
-        return mask  # trivial mask — nothing to refine
+        return mask
 
-    gray = cv2.cvtColor(original_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    try:
+        # 0. 尺寸对齐：mask 可能被 frame padding 放大，guide 必须匹配其尺寸
+        mask_h, mask_w = mask.shape[:2]
+        guide_h, guide_w = original_bgr.shape[:2]
 
-    # Edge strength via Sobel gradient magnitude
-    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
-    gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
-    edge_strength = np.sqrt(gx ** 2 + gy ** 2)
-    edge_strength /= edge_strength.max() + 1e-8  # normalise [0, 1]
+        if (mask_h, mask_w) != (guide_h, guide_w):
+            # mask 大于原图 → 白边 padding（frame 区域）
+            if mask_h >= guide_h and mask_w >= guide_w:
+                pad_top = (mask_h - guide_h) // 2
+                pad_bottom = mask_h - guide_h - pad_top
+                pad_left = (mask_w - guide_w) // 2
+                pad_right = mask_w - guide_w - pad_left
+                guide_bgr = cv2.copyMakeBorder(
+                    original_bgr,
+                    pad_top, pad_bottom, pad_left, pad_right,
+                    cv2.BORDER_CONSTANT, value=(255, 255, 255),
+                )
+            else:
+                # mask 小于原图 → 裁剪 guide 中心区域
+                crop_top = (guide_h - mask_h) // 2
+                crop_left = (guide_w - mask_w) // 2
+                guide_bgr = original_bgr[
+                    crop_top:crop_top + mask_h,
+                    crop_left:crop_left + mask_w,
+                ]
+        else:
+            guide_bgr = original_bgr
 
-    # Boundary band: dilate XOR erode
-    mask_u8 = mask.astype(np.uint8)
-    kernel = np.ones((edge_band, edge_band), np.uint8)
-    dilated = cv2.dilate(mask_u8, kernel)
-    eroded = cv2.erode(mask_u8, kernel)
-    boundary = dilated != eroded
+        # 1. 预处理：向导图 (Guide) 必须是 float32 格式，归一化到 [0, 1]
+        guide = guide_bgr.astype(np.float32) / 255.0
 
-    # In the boundary band, bias the mask toward edge alignment:
-    #   strong edge → sharpen (push toward 0 or 1)
-    #   weak edge   → smooth  (push toward 0.5, letting threshold handle it)
-    mask_f32 = mask.astype(np.float32)
-    edge_bias = (edge_strength - 0.5) * 0.4
-    refined = mask_f32.copy()
-    refined[boundary] = np.clip(
-        mask_f32[boundary] + edge_bias[boundary], 0.0, 1.0,
-    )
+        # 2. 预处理：将二值蒙版转为软蒙版 (Soft Mask)
+        # 给予边界一定的灰度渐变，让导向滤波有将其"推/拉"到真实物理边缘的空间
+        mask_f32 = mask.astype(np.float32)
+        blur_size = max(3, edge_band * 2 + 1)
+        soft_mask = cv2.GaussianBlur(mask_f32, (blur_size, blur_size), 0)
 
-    return refined > 0.5
+        # 3. 创建并执行导向滤波
+        # radius: 搜索邻域，eps: 正则化参数（越小对微弱边缘越敏感）
+        # 这里使用 1e-5，以确保像铁塔钢架这样强对比的高频边缘被死死咬住
+        gf = cv2.ximgproc.createGuidedFilter(
+            guide=guide,
+            radius=max(3, edge_band),
+            eps=1e-5
+        )
+        refined_f32 = gf.filter(soft_mask)
+
+        # 4. 二值化输出（在 0.5 处切断，获得极其凌厉的真实边界）
+        return refined_f32 > 0.5
+
+    except AttributeError:
+        from loguru import logger
+        logger.error("[边缘吸附] 缺少 opencv-contrib-python 库，无法使用导向滤波，回退到原始蒙版！")
+        return mask
+    except Exception as exc:
+        from loguru import logger
+        logger.warning(f"[边缘吸附] 导向滤波失败 — fallback 原始蒙版 | {exc}")
+        return mask
 
 
 def run_sam_automatic(
@@ -453,7 +483,7 @@ def run_sam_automatic(
 
         # F2: Edge snap
         try:
-            seg_smooth = _snap_mask_to_edges(seg_smooth, image)
+            seg_smooth = _snap_mask_to_edges(seg_smooth, image, edge_band=5)
         except Exception as e:
             raise RuntimeError(
                 f"[SAM引擎] 第{i+1}/{total}个mask边缘精修失败 — "
@@ -603,8 +633,8 @@ def refine_mask(
     else:
         refined = refined_sam
 
-    # ── 边缘精修（Sobel 梯度吸附） ─────────────────────────
-    refined = _snap_mask_to_edges(refined, image, edge_band=edge_band)
+    # ── 边缘精修（导向滤波） ─────────────────────────
+    refined = _snap_mask_to_edges(refined, image, edge_band=max(5, edge_band))
 
     logger.debug(
         "[SAM精修] 完成 | refined_fg={:.1f}%",

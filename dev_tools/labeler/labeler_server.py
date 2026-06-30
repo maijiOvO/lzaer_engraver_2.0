@@ -213,6 +213,30 @@ def run_segmentation(req: SegmentRequest) -> dict:
             skip_connectivity_repair=True,
         )
         frame_mask_full = frame_mask  # 已是原图分辨率，跳过 Step 6
+
+        # ── GrabCut 边缘吸附：层蒙版沿原图真实边缘对齐 ──
+        if req.quality != "draft":
+            try:
+                from app.utils.sam_engine import _snap_mask_to_edges
+                frame_bin = frame_mask_full > 0
+                for i, mask in enumerate(layer_masks):
+                    if not mask.any():
+                        continue
+                    content_only = (mask > 0) & ~frame_bin
+                    if content_only.sum() < 10:
+                        continue
+                    try:
+                        snapped = _snap_mask_to_edges(content_only, image, edge_band=5)
+                        snapped_u8 = snapped.astype(np.uint8) * 255
+                        snapped_u8[frame_bin] = 255
+                        layer_masks[i] = snapped_u8
+                        fg = int(np.count_nonzero(snapped_u8))
+                        stats[i]["fg_pixels"] = fg
+                        stats[i]["fg_pct"] = round(fg / (orig_h * orig_w) * 100, 2)
+                    except Exception:
+                        pass
+            except ImportError:
+                pass
     elif refine_mode == "none":
         # 纯等距量化 + 连通修复（客户端算法）
         from app.utils.structural_segmentation import (
@@ -288,7 +312,14 @@ def run_segmentation(req: SegmentRequest) -> dict:
 
     # ── Step 7: 保存叠加图（扩展画布尺寸） ────────────────────
     suffix = f"_n{n_layers}_f{req.frame_width}_i{req.min_island_area}"
-    suffix += "_dr" if req.quality == "draft" else "_std"
+    if req.quality == "draft":
+        suffix += "_dr"
+    elif sam_driven_mode:
+        # GrabCut edge refinement (integrated in sam_driven post-processing)
+        suffix += "_gc_fin" if req.quality == "fine" else "_gc"
+    else:
+        # none/slic + SAM refine_mask (internally uses GrabCut too)
+        suffix += "_ref"
 
     # 向外延伸边框 → pad 原图以匹配扩展后的层蒙版
     if sam_driven_mode and frame_mask_full.shape != image.shape[:2]:
