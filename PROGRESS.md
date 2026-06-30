@@ -1,7 +1,7 @@
 # 项目进度 (Progress Log)
 
-> 最后更新：2026-06-17 晚（标定器全链路修复：层数准确性 + 谷底检测 + 外扩边框 + 逐层对齐 + boundary 删除）
-> Git HEAD：待提交（boundary_refine 删除 + sam_driven 2-10层 + 谷底检测改进 + 外扩边框）
+> 最后更新：2026-06-30（笔刷引擎 5 Bug 修复 + SAM 细线伪影根治 + 连通性桥接移除 + fw 偏移复发问题文档化）
+> Git HEAD：待提交
 
 ## 整体架构状态
 
@@ -11,7 +11,7 @@
 | client_app/backend | 🟡 | 7 步管线全部有路由+服务+算法；SAM 分层架构 sam_driven 统一接管 2-10 层 |
 | client_app/frontend | 🟡 | 组件骨架完成；参数面板已同步新架构 |
 | dev_tools | 🟡 | canny/denoise 测试脚本就绪；**标定器全链路修复完成**（2026-06-17 晚） |
-| Docker 环境 | ✅ | docker-compose.yml 前后端隔离，前端 5173 后端 8080 |
+| Docker 环境 | ✅ | docker-compose.yml 保留；当前开发以本机运行为主（uvicorn + npm run dev），Docker 作为可选部署方案 |
 
 ## 管线 7 步实现状态
 
@@ -118,3 +118,8 @@
 | 2026-06-17 晚 | suggest_n_layers 自动推断从通用函数移除 | PAST_ISSUES 案例 27 |
 | 2026-06-17 晚 | 谷底检测改进（σ+浅谷过滤+硬兜底） | PAST_ISSUES 案例 28,31 |
 | 2026-06-17 晚 | 外框向外延伸（不遮挡内容）+ 逐层视图对齐 | PAST_ISSUES 案例 29-30 |
+| 2026-06-30 | 环境从 Linux 迁移至 Windows 11 原生；文档全面同步 | README, AI_RULES, API_CONTRACT |
+| 2026-06-30 | 笔刷引擎 5 Bug 修复（坐标、事件泄漏、单点、SAM logits、BBox） | 本文 |
+| 2026-06-30 | SAM crop_n_layers=0 消除网格裁切伪影 + 细碎分量后处理过滤 | sam_engine.py, structural_segmentation.py |
+| 2026-06-30 | repair_layer_mask 桥接逻辑移除；build_sam_driven_layers skip_connectivity_repair | structural_segmentation.py |
+| 2026-06-30 | fw 偏移复发问题文档化（PAST_ISSUES 新增复发型问题警告） | PAST_ISSUES.md |

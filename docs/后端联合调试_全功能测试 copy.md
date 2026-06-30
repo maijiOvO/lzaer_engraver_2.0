@@ -1,12 +1,14 @@
 # 联合调试与全功能测试方案
 
-> **版本:** 1.0 | **日期:** 2026-06-12 | **状态:** 待执行
+> **版本:** 1.1 | **日期:** 2026-06-12 | **状态:** 已执行 | **更新:** 2026-06-30
+>
+> ⚠️ **环境说明**：本文档编写于 Linux (WSL2) Docker 环境时期。当前开发环境已迁移至 Windows 11 原生，但测试方案中的 API 端点、Pydantic 参数约束、超时策略、防死循环规则等核心测试逻辑**仍然完全适用**。仅需将 `docker compose` / `docker exec` 命令替换为 `uvicorn` / `npm run dev` 的本机启动方式，并将 `/tmp/` 临时目录改为 `%TEMP%`（Windows）。
 >
 > 本文档定义 `lzaer_engraver_2.0` 项目的完整测试方案，覆盖 Docker 环境验证、7 步管线端到端测试、前端用户行为模拟、鲁棒性压力测试、dev_tools 脚本补全、参考图对标。
 
-**目标:** Docker 环境下的 7 步管线全链路端到端验证，覆盖单层/多层两种模式，模拟真实用户从上传到 SVG 下载的完整操作流程。
+**目标:** Docker 环境下的 7 步管线全链路端到端验证，覆盖单层/多层两种模式，模拟真实用户从上传到 SVG 下载的完整操作流程。当前亦支持本机 uvicorn + Vite 运行方式执行。
 
-**架构:** Docker Compose 双容器（laser-frontend:5173 + laser-backend:8080），前端通过 Vite proxy 转发 `/api` 到后端。测试分 3 层：纯 Python 引擎验证 → Docker 冒烟测试 → 浏览器全行为模拟。
+**架构:** Docker Compose 双容器（laser-frontend:5173 + laser-backend:8080）或本机 uvicorn + Vite，前端通过 Vite proxy 转发 `/api` 到后端。测试分 3 层：纯 Python 引擎验证 → 服务冒烟测试 → 浏览器全行为模拟。
 
 **参考:** AI_RULES.md §1-10, DOCKER_INFRA_GUIDE.md, API_CONTRACT.md, PAST_ISSUES.md 案例5/8/11/12/13
 

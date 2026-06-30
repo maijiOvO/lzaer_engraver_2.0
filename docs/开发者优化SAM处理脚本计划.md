@@ -1,8 +1,24 @@
 # 标定工具全面重构计划
 
-> 版本: 2.1  
-> 日期: 2026-06-17（更新）  
+> 版本: 2.3  
+> 日期: 2026-06-24（笔刷工具根因诊断 + 优先级重新评估）  
 > 关联: `dev_tools/labeler/`（标定器全栈）、`dev_tools/scripts/test_sam_segment.py`（CLI 工具）
+
+---
+
+## -1. 开发环境
+
+| 项目 | 详情 |
+|------|------|
+| **操作系统** | Windows 11 (原生，非 WSL) |
+| **Python 环境** | Windows 原生 Python 3.12 |
+| **GPU** | Intel Arc B370 (Battlemage, Ultra 5 338H 核显) |
+| **GPU 加速后端** | torch-directml (Microsoft DirectML for PyTorch) |
+| **标定器运行方式** | `python dev_tools/labeler/labeler_server.py` (本机) |
+| **client_app 运行方式** | `uvicorn app.main:app` (本机，非 Docker) |
+
+> **注意**：`client_app/docker-compose.yml` 和 `DOCKER_INFRA_GUIDE.md` 是历史遗留的 WSL2 Docker 环境配置，
+> 当前开发已完全迁移到 Windows 原生环境。后续 GPU 加速计划也基于此原生环境设计。
 
 ---
 
@@ -34,7 +50,7 @@
 - 深度值分布严重左偏（中位数=0.0000），导致 SLIC 的分位数分层失效
 - 关键矛盾：深度模型负责"哪片区域属于第几层"（正确），但旧管线让深度模型同时负责"边界画在哪"（错误）
 
-### 0.3 新方向（已落地）
+### 0.3 核心思路（已落地）
 
 ```
 SAM 模型 → "边界在这条线上"（精确边缘，原图精度）  ← SAM 决定对象形状
@@ -43,10 +59,6 @@ SAM 模型 → "边界在这条线上"（精确边缘，原图精度）  ← SAM
     ↓
 正确的分层蒙版（整栋建筑不会被拦腰切断）
 ```
-
-**核心思路**：先跑 `run_sam_automatic` 获取原图精细区块（一栋楼 = 一个完整区块），
-再取每个区块的深度中位数决定归属层。SAM 保证边缘贴合原图且对象完整，
-深度图仅决定前后顺序。
 
 ### 0.4 管线演进历史
 
@@ -59,300 +71,258 @@ SAM 模型 → "边界在这条线上"（精确边缘，原图精度）  ← SAM
 `boundary` 废弃原因：先做 `quantize_depth` 等距切分 → 高楼被水平切断 → 边界带 BBox 是狭长条带，
 无法包裹整栋建筑 → SAM 只能在局部补修 → 依然是断裂的半截楼。
 
+### 0.5 当前核心阻塞点（2026-06-24 诊断）
+
+**SAM 切割在实验室条件下能产出正确结果，但人工反馈链路完全断裂。** 
+
+开发者无法用标定工具产出一张"满意的、可作为参考标准"的分割结果，因为：
+
+1. **笔刷精修工具存在3个确定bug**，导致"逐层审核 + 笔刷修正"闭环完全不可用
+2. **无任何有效标注数据**，ML训练无从谈起
+
+因此当前优先级是：**修复笔刷工具 → 走通人工修正闭环 → 积累标注数据 → 再评估ML**。
+
 ---
 
 ## 一、目标
 
 将标定工具从"自动化分割 + 被动确认"升级为"智能分割 + 人工精修 + 机器学习闭环"的完整开发者工具链。
 
-**三层递进目标**：
-
-1. **分割质量提升** — 深度等距量化提供宏观分层，SAM 在原图精度上精修层间边界
-2. **快速人工干预** — 笔刷式局部修正，像 PS 一样涂抹选中的/排除的区域
-3. **ML 闭环** — 从人工修正中学习：笔刷信号 → 局部特征 → 失败模式聚类 → 精修预测器
-
----
-
-## 二、架构变更总览
-
-### 2.1 从脚本到全栈标定平台
-
-```
-旧架构：
-  test_sam_segment.py (CLI)
-    └─ label 模式: 交互式参数调优
-
-新架构：
-  dev_tools/labeler/
-  ├── labeler_server.py       ← Web 标定器（FastAPI，端口 8090）
-  │     ├── run_segmentation()    ← 改造：支持精修模式
-  │     ├── api_brush_refine()    ← 新增：笔刷式 SAM 局部精修
-  │     ├── api_save()            ← 改造：记录笔刷事件
-  │     └── api_brush_events()    ← 新增：笔刷事件查询/导出
-  │
-  ├── boundary_refine.py       ← 新增：边界带提取 + SAM 精修引擎
-  ├── brush_recorder.py        ← 新增：笔刷事件记录模块
-  ├── slic_segmentation.py     ← 保留：SLIC 算法（备用对比）
-  ├── score_engine.py          ← 保留：5 维自动评分
-  │
-  ├── static/                  ← 前端（纯 HTML/CSS/JS，零框架）
-  │     ├── index.html          ← 改造：新增笔刷工具栏 + 逐层审核模式
-  │     ├── brush_tool.js       ← 新增：Canvas 笔刷引擎
-  │     └── ...
-  │
-  └── dev_tools/scripts/
-      └── test_sam_segment.py   ← 保留 CLI，对接新引擎
-```
-
-### 2.2 管线变更
-
-```
-旧管线（等距量化 + 连通修复 + 可选 SAM 逐层精修）：
-  深度图 → 等距量化 → repair_layer_mask → SAM 逐层精修（事后补救）
-                                                     ↑ 已经切坏了才修
-
-阶段1管线（深度分层 + 层间边界带 SAM 精修）— 已废弃：
-  深度图 → 等距量化 raw → 提取边界带 → SAM 框选精修 → 回填
-                 ↑ 宏观分层    ↑ BBox 无法包裹整栋建筑
-
-阶段2管线（SAM 自动分割 → 深度归属）— 当前默认：
-  原图 → run_sam_automatic → 精细区块列表（完整对象，SAM 边缘）
-    +                            ↓
-  深度图 ────────────→ 逐区块深度中位数归属 → N 层蒙版 → repair_layer_mask
-                        ↑ 深度只管 Z 轴排序，不画边界
-```
+**当前阶段目标**（修订于2026-06-24）：
+1. **修复笔刷精修工具** — 解决坐标偏移、mask_key断裂、SAM调用方式错误三个bug
+2. **走通端到端人工修正闭环** — 对一张图完成：分割→笔刷→精修→满意→确认标定
+3. **积累首批有效标注** — 对10张城市图逐一审核确认，产出一批"开发者认可"的训练数据
+4. **评估ML方向** — 基于有效数据跑 train 模式，观察RF预测器实际表现
 
 ---
 
-## 三、新增模块详细设计
+## 二、笔刷精修工具 — 需求澄清
 
-### 3.1 `build_sam_driven_layers()` — SAM驱动分层引擎（当前默认）
+### 2.1 笔刷工具的真正意图
 
-位置：`client_app/backend/app/utils/structural_segmentation.py`
-
-**输入**：
-- `sam_masks` (list[dict]): `run_sam_automatic()` 的输出，每个含 `segmentation` (bool H×W)
-- `depth_map` (np.ndarray): 深度图
-- `n_layers` (int): 目标层数（sam_driven 模式上限 3）
-- `image_shape` (tuple): 原图 (H, W)
-- `frame_width`, `min_island_area`: 连通性修复参数
-
-**流程**：
+用户用笔刷进行**粗糙区域标记**，算法在标记区域内做**像素级精确切割**。
 
 ```
-Step 1: SAM区块 → 深度中位数 → 层归属
-  遍历每个 SAM mask（按置信度降序）：
-    取该区块覆盖区域的深度中位数
-    layer_idx = int(median_depth * n_layers)  ← 整块不切割
-    尚未被更高置信度 mask 覆盖的像素 → 全部写入目标层
-
-Step 2: 未覆盖像素 fallback
-  未被任何 SAM mask 覆盖的像素 → 回退到 quantize_depth（等距量化）
-
-Step 3: 连通性收尾
-  生成外框 → 逐层 repair_layer_mask（桥接 + 擦除微小孤岛）
+第一步（人）：用户粗略涂抹 → "大概是这片区域需要调整"
+第二步（算法）：在标记区域内，自动找到精确的物体边界
+第三步（合并）：纳入 = 旧蒙版 + 新精确区域，排除 = 旧蒙版 - 新精确区域
 ```
 
-**输出**：
-- `layer_masks`: N 个 uint8 二值蒙版（含外框）
-- `frame_mask`: 外框蒙版
-- `stats`: 每层统计
+### 2.2 纳入/排除模式的约束
 
-**关键约束**：
-- `sam_driven` 模式上限 3 层 — 更多层使阈值过密，SAM 区块被分配到不同层 → 拦腰斩断
-- SAM 缓存：`{stem}_sam_region.npz`（压缩 region_map），首次 ~290s，缓存命中 ~8s
-- 层数自动推断：`suggest_n_layers(depth_map)` 返回建议值，`sam_driven` 取 `min(suggested, 3)`
+| 模式 | 允许的操作 | 禁止的操作 |
+|------|-----------|-----------|
+| 🟢 纳入 (include) | 往当前层**添加**新像素 | **绝对不能删除**当前层已有像素 |
+| 🔴 排除 (exclude) | 从当前层**移除**已有像素 | **绝对不能添加**新像素到当前层 |
 
-### 3.2 `boundary_refine.py` — 边界精修引擎（⚠️ 已废弃）
+多层之间允许共享同一片区域（一个像素可以同时出现在多层）。
 
-> **废弃原因**：先 `quantize_depth` 等距切分再 SAM 修补的顺序有因果倒置漏洞。
-> 高楼 depth 0.1→0.5 跨度大，等距阈值直接切成多段，边界带 BBox 是狭长条带无法包裹整栋建筑。
-> 保留代码仅供对比，不再作为默认引擎。
+### 2.3 算法选择：笔刷精修阶段使用 SAM mask_input
 
-位置：`dev_tools/labeler/boundary_refine.py`
+笔刷精修的本质是用户提供了**粗略掩码提示**，让算法在提示区域内做像素级精确分割。SAM 的 `mask_input` 参数正好匹配这个需求：
 
-### 3.3 SAM 结果缓存（新增）
+| 比较维度 | 初次大范围分割 | 笔刷精修 |
+|---------|-------------|---------|
+| 输入 | 全图 | 笔刷涂抹区域 |
+| SAM 调用 | `run_sam_automatic()`（全图自动分割） | `predict(mask_input=...)`（局部掩码精修） |
+| 耗时 | ~290s（首次）/ ~8s（缓存） | < 3s |
+| 精度 | SAM 自身精度上限（1200px） | 同左，但限制在笔刷区域内 |
 
-位置：`client_app/backend/app/utils/sam_engine.py` — `run_sam_automatic(cache_path=...)`
+**选型理由**：
+- SAM 的 `mask_input`（`torch.Tensor`，shape `[1,1,256,256]`）专门用于"输入粗掩码，输出精修掩码"
+- 它自动将粗糙的人类笔刷收缩/扩展到原图中物体的真实边界
+- 不需要复杂的 point prompt 策略、不需要 box padding
+- 已有的 `_upscale_mask_smooth()`（三次立方插值 + 高斯模糊 + Sobel 边缘吸附）保障上采样回原图分辨率时的精度
 
-| | 首次 | 缓存命中 |
+---
+
+## 三、笔刷精修链路设计（修订版）
+
+### 3.1 完整链路（含分辨率标注）
+
+```
+① 用户笔刷涂抹 → 坐标记录（原图分辨率）
+   精度：无损。前端存储为原图像素坐标，不经过缩放。
+
+② 后端光栅化 → 笔刷粗掩码（原图分辨率，uint8）
+   精度：无损。在全分辨率画布上画圆填充笔画。
+
+③ 缩小到 256×256 → torch.Tensor → SAM mask_input
+   精度损失：刻意为之。SAM mask_input 固定 256×256。
+   缩小采用 cv2.resize(INTER_AREA)，区域插值不丢结构。
+
+④ SAM 推理 → 精修掩码（SAM 处理分辨率，max_dim ≤ 1200px）
+   精度：SAM 自身精度上限。
+
+⑤ 精修掩码 → 上采样回原图分辨率（如 5472×3078）
+   精度保障：_upscale_mask_smooth()
+     - cv2.INTER_CUBIC 三次立方插值
+     - GaussianBlur(sigma=0.8) 抗锯齿
+     - threshold(0.5) 二值化恢复
+     - _snap_mask_to_edges(edge_band=3) Sobel 梯度吸附到原图边缘
+   复用已有实现，无需重写。
+
+⑥ 布尔运算：
+   纳入: 新蒙版 = 旧蒙版 | 精修掩码
+   排除: 新蒙版 = 旧蒙版 & ~精修掩码
+   精度：逐像素位运算，全分辨率。
+
+⑦ 写回文件 + 前端刷新显示
+```
+
+### 3.2 分辨率精度保障结论
+
+整条链路中，精度损失仅发生在步骤③（256×256 mask_input 是SAM的固定要求）。步骤⑤使用**三次立方 + 高斯 + Sobel吸附**上采样回原图分辨率，已有代码经过验证，精度可靠。
+
+---
+
+## 四、当前Bug清单（P0 — 阻塞人工修正闭环）
+
+### Bug 1：逐层审核模式下笔刷坐标偏移（⚠️ 核心问题）
+
+**症状**：用户在逐层审核模式下涂抹的区域，与SAM精修后实际生效的区域存在偏移。
+
+**根因**：
+- `renderLayersView()`（index.html 第444行）为逐层Canvas设置 `style="left:-${fw}px; top:-${fw}px"` 偏移（默认 fw=50）
+- `BrushTool.init()`（brush_tool.js 第43行）创建的笔刷Canvas位于 `top:0; left:0`
+- 两者都在 `#world` 容器内，但笔刷Canvas没有做对应的 `-fw` 偏移补偿
+- `vp2img()` 坐标转换未感知此偏移
+
+**影响**：用户看到的蒙版叠加位置与笔刷实际记录的位置相差 `frame_width` 像素（默认50px）。
+
+**修复位置**：`brush_tool.js` — `enable()` 方法增加 `frameWidth` 参数，笔刷Canvas偏移 `-fw`。
+
+---
+
+### Bug 2：currentMaskKey 前端拼接断裂
+
+**症状**：点击「应用SAM」后，后端 `/api/brush-refine` 返回404 "蒙版不存在"。
+
+**根因**：
+- 前端 `applyBrushSam()` 对 overlay URL 做正则截断：`ovStem.replace(/_n\d+.*/, '')` → 得到 `"上海"`
+- 后端拼接文件路径：`{mask_key}_mask_{layer_index}.png` → 查找 `上海_mask_0.png`
+- 实际文件名为：`上海_n3_f50_i100_std_mask_0.png`（带完整suffix）
+
+**修复方案**：
+- `run_segmentation()` 返回值中新增 `mask_key` 字段（如 `"上海_n3_f50_i100_std"`），让数据生产方明确告诉消费方
+- 前端 `applyBrushSam()` 直接读取 `segResult.mask_key`，不再截断拼接
+
+**修复位置**：`labeler_server.py`（返回值加字段）+ `index.html`（前端读取新字段）。
+
+---
+
+### Bug 3：SAM 调用方式错误 — include/exclude 意图被丢弃
+
+**症状**：不管用户使用纳入笔刷还是排除笔刷，SAM精修的结果都一样——整张蒙版被SAM输出覆盖。
+
+**根因**：
+- 后端收集了 `include_points` 和 `exclude_points`（第560-576行）
+- 但 `predict()` 调用时传了 `point_coords=None, point_labels=None`（第616-618行），注释说"MobileSAM 维度冲突"
+- SAM 实际只收到 `box` 参数（笔刷包围盒），**完全不知道用户想纳入还是排除**
+- 第636行 `cv2.imwrite(str(mask_path), refined_u8)` 直接覆盖旧蒙版文件，**旧蒙版内容全部丢失**
+- 没有做布尔运算（纳入=OR，排除=AND NOT）
+
+**修复方案**：重写 `api_brush_refine()` 的核心逻辑：
+1. 将笔刷笔画光栅化为粗掩码（原图分辨率 uint8）
+2. 缩放到 256×256 作为 `mask_input`
+3. 调用 `predict(mask_input=...)` 获取精修掩码
+4. 上采样回原图分辨率（`_upscale_mask_smooth` + `_snap_mask_to_edges`）
+5. 纳入：`new_mask = old_mask | refined_mask`
+6. 排除：`new_mask = old_mask & ~refined_mask`
+
+**修复位置**：`labeler_server.py` — `api_brush_refine()` 函数。
+
+---
+
+### Bug 4（次要）：精修后frame边框硬编码 `fw=50`
+
+**症状**：`api_brush_refine()` 第642行 `fw = 50` 硬编码，不跟随用户分割时使用的 `frame_width`。
+
+**影响**：如果用户使用 `frame_width=100` 分割，精修后frame裁剪仍按50px → 边框残留/内容误删。
+
+**修复位置**：`labeler_server.py` 第642行。
+
+---
+
+## 五、实施计划（修订版）
+
+### ✅ 阶段 0：SAM驱动分层引擎（已完成 — 2026-06-17）
+
+- `build_sam_driven_layers()` 作为默认引擎
+- SAM缓存 `{stem}_sam_region.npz`，首次290s/缓存8s
+- 上海.jpg验证通过，无拦腰斩断
+
+### ✅ 阶段 1：标定器基础设施（代码已完成，未验证）
+
+| 模块 | 文件 | 状态 |
 |------|------|------|
-| 上海.jpg (5472×3078) | ~290s | ~8s |
-| 缓存文件 | `上海_sam_region.npz` (220KB) | — |
+| Web后端 | `labeler_server.py` (765行) | ✅ 代码完成 |
+| 前端 | `index.html` (780行) | ✅ 代码完成 |
+| 笔刷引擎 | `brush_tool.js` (271行) | ✅ 代码完成，含3个bug |
+| 笔刷API | `api_brush-refine` | ✅ 代码完成，调用逻辑错误 |
+| 事件记录器 | `brush_recorder.py` (279行) | ✅ 代码完成，含局部特征提取 |
+| CLI工具 | `test_sam_segment.py` (四模式) | ✅ 代码完成 |
 
-缓存内容：压缩的 `region_map` int32 标签图 + mask 元数据。
-缓存位置：`dev_tools/outputs/sam/{stem}_sam_region.npz`（标定器）
-          `client_app/backend/outputs/{image_id}_sam_region.npz`（客户端）
+### 🔴 阶段 2：笔刷精修Bug修复（当前 — 最高优先级）
 
-### 3.4 深度图预览 API（新增）
+**目标**：修复 Bug 1-3，走通"分割→笔刷→SAM精修→确认标定"完整闭环。
 
-位置：`dev_tools/labeler/labeler_server.py`
+| 文件 | 改动 | Bug |
+|------|------|-----|
+| `brush_tool.js` | `enable()` 加 `frameWidth` 参数，笔刷Canvas偏移补偿 | Bug 1 |
+| `index.html` | `setMode('review')` 传 `frameWidth`；`applyBrushSam()` 改用 `segResult.mask_key` | Bug 1,2 |
+| `labeler_server.py` | `run_segmentation()` 返回值加 `mask_key` 字段 | Bug 2 |
+| `labeler_server.py` | 重写 `api_brush_refine()`：笔刷→粗掩码→SAM mask_input→精修掩码+布尔运算 | Bug 3 |
+| `labeler_server.py` | 硬编码 `fw=50` 改为从请求参数读取（可选，低优先级） | Bug 4 |
 
-```
-GET /api/depth-preview?image_name=上海.jpg
-→ 返回 JET 伪彩色 PNG，蓝=近 红=远
-```
+**不动**：`brush_recorder.py`、`client_app/` 下任何文件、`test_sam_segment.py`。
 
-### 3.5 `brush_recorder.py` — 笔刷事件记录模块
+**验证标准**：用一张测试图（如上海.jpg）走通：
+1. 选择图片 → 开始分割 → 逐层审核
+2. 🟢纳入笔刷涂抹 → 应用SAM → 看到该层蒙版新增了像素（旧像素保留）
+3. 🔴排除笔刷涂抹 → 应用SAM → 看到该层蒙版移除了像素（其他像素保留）
+4. 确认标定 → `labeled.json` 写入正确
 
-**数据结构**：
+### 阶段 3：积累首批有效标注
 
-```python
-@dataclass
-class BrushEvent:
-    """一次笔刷修正事件"""
-    image_hash: str           # 图片 SHA256
-    image_name: str           # 文件名
-    layer_index: int          # 当前编辑的层
-    brush_type: str           # "include" (纳入) | "exclude" (排除)
-    stroke_points: list       # [(x, y), ...] 笔刷轨迹坐标
-    bbox: tuple               # (x1, y1, x2, y2) 笔刷覆盖区域
-    timestamp: str
-    
-    # 该区域的局部特征（实时计算）
-    local_features: dict = None  # {depth_gradient, rgb_edge, texture, ...}
-```
+**目标**：对 `test_imgs/train/` 下的10张城市图逐一审核确认。
 
-**存储**：`dev_tools/data/brush_events/{image_hash}_{timestamp}.json`
-
-**功能**：
-
-| 函数 | 作用 |
+| 活动 | 产出 |
 |------|------|
-| `record_event(event: BrushEvent)` | 记录一次笔刷事件 |
-| `get_events(image_hash: str)` | 获取某图所有笔刷事件 |
-| `export_events()` | 导出为训练格式 `[{features, label}, ...]` |
-| `cluster_failure_modes()` | 对积累的事件做失败模式聚类 |
+| 每张图跑分割（`/api/auto-segment`） | 自动分割结果 |
+| 逐层审核，必要时笔刷修正 | 人工校准 |
+| 确认标定或跳过 | `labeled.json` 中写入有效标注 |
 
-**局部特征计算**（对笔刷覆盖区域实时计算）：
+**质量标准**：开发者通过「确认标定」按钮显式确认（不仅是自动分割后直接存）。
 
-| 特征 | 含义 | ML 用途 |
-|------|------|--------|
-| `depth_gradient_mean` | 区域内深度梯度均值 | 判断"深度模型是否漏了边界" |
-| `rgb_edge_mean` | 区域内 Canny 边缘强度均值 | 判断"RGB 边缘是否明显但未被使用" |
-| `texture_complexity` | 局部纹理方差 | 判断"是否复杂纹理干扰了分割" |
-| `layer_adjacency` | 该区域邻接几个层 | 判断"跨层冲突严重程度" |
-| `component_size` | 区域面积 | 判断"是碎片问题还是大边界问题" |
-| `depth_median` | 区域内深度中位数 | 判断"深度归属是否错误" |
+### 阶段 4：ML 重新评估
 
----
+**前置条件**：≥10张有效标定。
 
-## 四、前端交互设计
+**评估项**：
+- 跑 `test_sam_segment.py --mode train`，观察 RF 预测器的 OOB R² 和特征重要性
+- 如果 RF 参数预测精度足够（OOB R² > 0.5），第二层 ML（精修触发预测器）可能不需要
+- 如果精度不足，考虑：
+  - 增加标注数量（>50张）
+  - 引入笔刷事件特征（`brush_recorder.py` 积累的数据）
+  - 训练"精修触发预测器"判断哪些边界段需要 SAM 精修
 
-### 4.1 新增「逐层审核 + 笔刷精修」模式
-
-```
-┌──────────────────────────────────────────────────────────┐
-│  [原图] [彩色叠加] [逐层审核 🔍]                           │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│   ┌──────────────────────────────────────┐              │
-│   │                                      │              │
-│   │    原图 + 当前层蒙版 (半透明叠加)      │              │
-│   │    Canvas 支持缩放/拖拽/双击复位       │              │
-│   │                                      │              │
-│   └──────────────────────────────────────┘              │
-│                                                          │
-│  图层选择: [层0 ●] [层1 ○] [层2 ○]                        │
-│                                                          │
-│  工具栏:                                                  │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │ 🟢 纳入  │  🔴 排除  │  笔刷大小 [────○────] 20px   │  │
-│  │ [应用SAM] │  [撤销]   │  [重置本层]                 │  │
-│  └────────────────────────────────────────────────────┘  │
-│                                                          │
-│  快捷键: Ctrl+Z 撤销  |  [ / ] 调笔刷大小                  │
-│                                                          │
-│  状态栏: 层0 修正 3 处 | 上次 SAM 精修 +12px²              │
-└──────────────────────────────────────────────────────────┘
-```
-
-### 4.2 笔刷操作流程
-
-```
-1. 开发者选择「逐层审核」，选中层 1
-2. 发现某建筑边缘被错误归属 → 切换到 🟢 纳入笔刷
-3. 在错误区域涂抹 → 笔画以绿色半透明覆盖显示
-4. 对照检查：发现另一处天空碎片被错误纳入 → 切换到 🔴 排除
-5. 涂抹排除区域 → 笔画以红色半透明覆盖
-6. 点击「应用SAM」：
-   a. 🟢 笔画区域 → 作为 SAM 正提示点 → 在当前层扩展
-   b. 🔴 笔画区域 → 作为 SAM 负提示点 → 从当前层移除
-   c. SAM 只在笔画覆盖的局部 bbox 内运行 → < 1s
-7. 开发者验证结果 → 满意/继续修正
-8. 确认标定
-```
-
-### 4.3 笔刷引擎技术要求
-
-- Canvas 画布分层：原图层 / 蒙版叠加层（半透明彩色）/ 笔画层（SVG 路径）
-- 笔画存储为坐标点序列，非光栅图（支持缩放后重新渲染）
-- 笔刷大小范围 5-100px，默认 20px
-- 支持圆形笔刷（基础）/ 可扩展为软边笔刷
-- 撤销栈保留最近 20 次操作
+**第二层 ML（精修触发预测器）仅在以下条件满足时启动**：
+- ≥50 张有笔刷事件的标定
+- 每样本 ≥3 次笔刷事件
+- 验证方式：留一交叉验证
 
 ---
 
-## 五、标定数据格式升级
-
-### 5.1 新增字段
-
-```json
-{
-  "images": {
-    "a1b2c3...": {
-      "filename": "上海.jpg",
-      "width": 5472,
-      "height": 3078,
-      "megapixels": 16.8,
-      "features": { ... },
-      "params": {
-        "n_layers": 3,
-        "frame_width": 50,
-        "min_island_area": 100,
-        "quality": "standard",
-        "refine_mode": "boundary_sam"     ← 新增
-      },
-      "brush_events": [                    ← 新增
-        {
-          "layer": 1,
-          "type": "include",
-          "bbox": [1200, 800, 1350, 950],
-          "point_count": 43,
-          "timestamp": "2026-06-17T17:30:00"
-        }
-      ],
-      "brush_event_file": "brush_events/a1b2c3_20260617_173000.json",  ← 新增
-      "scores": { ... },
-      "labeled_at": "2026-06-17T17:35:00"
-    }
-  }
-}
-```
-
-### 5.2 数据质量标准
-
-**有效标定条件**：
-- 开发者通过「确认标定」按钮显式确认（不仅是自动分割后直接存）
-- 或：CLI label 模式下按 Y 确认
-- 或：笔刷修正后点「确认标定」
-
-**无效标定**（不入训练集）：
-- 仅自动分割、未经过开发者确认
-- 「跳过」按钮处理
-- 评分 `combined_score < 0.5` 且未修正
-
----
-
-## 六、ML 闭环设计
+## 六、ML 闭环设计（远期目标，当前不做）
 
 ### 6.1 数据积累路径
 
 ```
-自动分割（新管线）
+自动分割（sam_driven）
     ↓
 开发者逐层审核 + 笔刷修正
-    ↓ 每次笔刷操作自动记录
+    ↓ 每次笔刷操作自动记录（brush_recorder.py）
 brush_events/{hash}_{ts}.json
     ↓ 确认标定
 labeled.json（含 brush_events 引用 + 精修后蒙版）
@@ -369,23 +339,17 @@ labeled.json（含 brush_events 引用 + 精修后蒙版）
 | 训练数据 | 自动标记（无效） | 开发者确认 + 笔刷修正后 |
 | 特征 | 11 维全局特征 | 11 维全局 + 笔刷事件统计特征 |
 | 模型 | RandomForest | RandomForest（不变） |
-| 最低样本 | 10 | 50（质量优先） |
+| 最低样本 | 10（自动） | 50（质量优先） |
 
-**第二层：精修触发预测器（新增）**
+**第二层：精修触发预测器（新增，远期）**
 
 ```
 输入：深度等距量化的边界 + 该边界的局部特征
-输出：{segment_id: 是否需要 SAM 精修}  (二分类)
+输出：{segment_id: 是否需要 SAM 精修} (二分类)
 训练数据：来自笔刷事件
   开发者涂抹了某段边界 → label = "需要精修"
   开发者未触碰的边界段 → label = "不需要精修"
 ```
-
-使用时：
-1. 深度等距量化 → 提取所有层间边界段
-2. 精修预测器判断每段是否需要 SAM
-3. SAM 只在预测为"需要"的段上运行
-4. 跳过"不需要"的段（如地面线、简单直线）
 
 ### 6.3 训练触发条件
 
@@ -395,95 +359,41 @@ labeled.json（含 brush_events 引用 + 精修后蒙版）
 | 每样本至少 | 开发者确认 | ≥3 次笔刷事件 |
 | 验证方式 | OOB score | 留一交叉验证 |
 
-### 6.4 特征集扩展
-
-在现有 11 维全局特征基础上，新增笔刷事件派生的统计特征：
-
-| 特征 | 来源 | 影响 |
-|------|------|------|
-| `brush_event_count` | 笔刷事件总数 | 判断图是否难分割 |
-| `brush_include_ratio` | 纳入/排除笔刷比 | 漏割 vs 过割倾向 |
-| `brush_coverage_pct` | 笔刷覆盖面积占比 | 自动分割错误率 |
-| `brush_layer_distribution` | 各层笔刷事件分布 | 哪层最难分割 |
-| `avg_brush_component_size` | 笔刷区域平均大小 | 错误粒度 |
-
 ---
 
-## 七、实施阶段
+## 七、笔刷事件记录器（已实现，当前不阻塞）
 
-### ✅ 阶段 0：SAM驱动分层引擎（新增，已完成）
+### 7.1 `brush_recorder.py` 状态
 
-**目标**：废弃 `boundary_refine`，实现 `build_sam_driven_layers()` 作为默认引擎。
+代码已完成（279行），数据结构如下：
 
-| 文件 | 操作 | 内容 |
-|------|------|------|
-| `client_app/backend/app/utils/structural_segmentation.py` | 新增函数 | `build_sam_driven_layers()` — SAM区块→深度归属→连通修复 |
-| `client_app/backend/app/utils/sam_engine.py` | 修改 | `run_sam_automatic()` 新增 `cache_path` 参数 |
-| `dev_tools/labeler/labeler_server.py` | 修改 | 默认 `refine_mode="sam_driven"`，3层上限，深度图API |
-| `client_app/backend/app/services/segmentation_service.py` | 修改 | 支持 `engine="sam_driven"` |
-| `dev_tools/scripts/test_sam_segment.py` | 修改 | `--refine sam_driven` 选项 |
-| `dev_tools/labeler/static/index.html` | 修改 | 深度图预览按钮 |
+```python
+@dataclass
+class BrushEvent:
+    image_hash: str
+    image_name: str
+    layer_index: int
+    brush_type: str           # "include" | "exclude"
+    point_count: int
+    bbox: tuple[int, int, int, int]
+    timestamp: str
+    sam_score: float
+    fg_pct_before: float | None
+    fg_pct_after: float | None
+    local_features: dict[str, float]
+```
 
-**验证**：上海.jpg 上 CLI 和 Labeler 输出逐像素相同（MD5一致），无拦腰斩断。
+局部特征维度（6维）：
+- `rgb_edge_mean` — Canny 边缘强度
+- `texture_complexity` — 局部纹理方差
+- `depth_gradient_mean` — 深度梯度均值
+- `depth_median` — 深度中位数
+- `depth_std` — 深度标准差
+- `component_size` — 区域面积
 
-### ✅ 阶段 1：边界精修引擎（已完成，已废弃）
+### 7.2 当前不阻塞原因
 
-**目标**：实现 `boundary_refine.py`。已于阶段0被 `sam_driven` 替代。
-
-### 阶段 2：笔刷工具（前端）
-
-**目标**：实现 Canvas 笔刷引擎 + SAM 局部再精修。
-
-| 文件 | 操作 | 内容 |
-|------|------|------|
-| `dev_tools/labeler/static/index.html` | 修改 | 新增「逐层审核」模式 + 工具栏 |
-| `dev_tools/labeler/static/brush_tool.js` | 新建 | Canvas 笔刷引擎（纳入/排除/撤销/笔刷大小） |
-| `dev_tools/labeler/labeler_server.py` | 修改 | 新增 `POST /api/brush-refine`（SAM 局部精修 API） |
-
-**交互**：
-1. 分割完成后 → 切换到「逐层审核」
-2. 笔刷涂抹 → 前端收集笔画坐标
-3. 点击「应用SAM」→ `POST /api/brush-refine {layer, brush_strokes}`
-4. 后端：笔画 → SAM point prompts → 局部 bbox → SAM → 返回精修后蒙版
-5. 前端更新蒙版显示
-
-### 阶段 3：笔刷事件记录
-
-**目标**：每次笔刷操作自动记录，为 ML 积累数据。
-
-| 文件 | 操作 | 内容 |
-|------|------|------|
-| `dev_tools/labeler/brush_recorder.py` | 新建 | 事件记录 + 局部特征计算 |
-| `dev_tools/labeler/labeler_server.py` | 修改 | 笔刷 API 调用 recorder，确认标定时写入 labeled.json |
-
-**记录时机**：每次「应用SAM」操作自动触发，无需开发者额外操作。
-
-### 阶段 4：标定数据格式升级
-
-**目标**：labeled.json 新增 brush_events 字段，loading 逻辑兼容新旧格式。
-
-| 文件 | 操作 | 内容 |
-|------|------|------|
-| `dev_tools/scripts/test_sam_segment.py` | 修改 | `ImageRegistry` 兼容新字段，`get_labeled_dataset()` 筛选有效数据 |
-| `dev_tools/data/labeled.json` | 重建 | 清除旧数据后的新格式（v2） |
-
-### 阶段 5：CLI 工具同步
-
-**目标**：`test_sam_segment.py` 的 label/scan/train 模式对接新引擎。
-
-| 文件 | 操作 | 内容 |
-|------|------|------|
-| `dev_tools/scripts/test_sam_segment.py` | 修改 | label 模式使用 boundary_refine；scan 模式支持参数 --refine |
-
-### 阶段 6：首批有效数据积累 + ML 训练
-
-**目标**：用新工具标定 ≥10 张图，跑通第一轮训练。
-
-| 活动 | 产出 |
-|------|------|
-| 标定上海.jpg | 验证全链路 |
-| 标定 10 张城市天际线 | 首批有效训练集 |
-| `--mode train` | 第一版 RF 预测器 + 特征重要性分析 |
+记录器在 `/api/brush-refine` 成功返回后自动触发（第665-677行），无需开发者额外操作。Bug 1-3 修复后，记录器自然随之工作。
 
 ---
 
@@ -495,34 +405,32 @@ labeled.json（含 brush_events 引用 + 精修后蒙版）
 |------|---------|------|
 | 深度估计（首次） | < 20s | 必须等待，一次性 |
 | 深度估计（缓存命中） | < 0.1s | 复用缓存 |
-| 等距量化 + 边界带提取 | < 0.5s | 纯 numpy |
-| SAM 边界带精修（全图） | < 15s | 只在边界带内运行，非全图 |
-| SAM 笔刷局部精修 | < 1s | 只跑笔画 bbox |
+| SAM 自动分割（首次） | ~290s | 一次性，写缓存 |
+| SAM 自动分割（缓存命中） | ~8s | 读缓存 |
+| SAM 笔刷精修（mask_input） | < 3s | 局部推理 |
 | 开发者审核 + 笔刷 | 1-3min | 人类时间 |
-| **整体：新图从零到确认标定** | **< 3min** | |
+| **整体：新图从零到确认标定** | **< 5min** | |
 
 ### 8.2 防重复设计
 
-- 深度缓存：图片哈希 → 一次推理永久复用
-- SAM 笔刷精修结果缓存：同一笔画区域不重复跑 SAM
-- 标定历史：同一图片同一参数组合不重复处理
+- 深度缓存：`{stem}_depth.npy`，图片哈希 → 一次推理永久复用
+- SAM分割缓存：`{stem}_sam_region.npz`，首次290s/缓存8s
+- 标定历史：`ImageRegistry` SHA256 去重，同一图片不会重复处理
 
 ---
 
 ## 九、文件清单
 
-| 文件 | 操作 | 说明 |
-|------|------|------|
-| `dev_tools/labeler/boundary_refine.py` | 新建 | 边界带 + SAM 精修引擎 |
-| `dev_tools/labeler/brush_recorder.py` | 新建 | 笔刷事件记录模块 |
-| `dev_tools/labeler/static/brush_tool.js` | 新建 | 前端 Canvas 笔刷引擎 |
-| `dev_tools/labeler/static/index.html` | 修改 | 新增逐层审核模式 + 工具栏 |
-| `dev_tools/labeler/labeler_server.py` | 修改 | 新增精修模式、笔刷 API、事件记录 |
-| `dev_tools/scripts/test_sam_segment.py` | 修改 | label/scan/train 对接新引擎，兼容新 labeled.json |
-| `dev_tools/data/labeled.json` | 重建 | v2 格式，含 brush_events 字段 |
-| `dev_tools/data/brush_events/` | 新建 | 笔刷事件存储目录 |
-| `dev_tools/data/layer_predictor.pkl` | 延迟 | 首批 ≥50 张有效标定后训练 |
-| `docs/开发者优化SAM处理脚本计划.md` | 重写 | 本文件 |
+| 文件 | 当前状态 | 需要改动 |
+|------|---------|---------|
+| `dev_tools/labeler/labeler_server.py` | ✅ 代码完成 | 🔧 加 `mask_key` 字段 + 重写 `api_brush_refine()` |
+| `dev_tools/labeler/static/index.html` | ✅ 代码完成 | 🔧 修复 `mask_key` 读取 + `setMode` 传参 |
+| `dev_tools/labeler/static/brush_tool.js` | ✅ 代码完成 | 🔧 修复坐标偏移 |
+| `dev_tools/labeler/brush_recorder.py` | ✅ 代码完成 | 不动 |
+| `dev_tools/scripts/test_sam_segment.py` | ✅ 代码完成 | 不动 |
+| `dev_tools/data/labeled.json` | 已有（自动标注） | 修复后重新积累 |
+| `dev_tools/data/brush_events/` | 已有目录 | 修复后自动积累 |
+| `docs/开发者优化SAM处理脚本计划.md` | — | ✅ 本文档（v2.3） |
 
 **不动任何 `dev_tools/` 以外的文件。**
 
@@ -532,12 +440,9 @@ labeled.json（含 brush_events 引用 + 精修后蒙版）
 
 | 盲区 | 对策 |
 |------|------|
-| 边界带过宽（包含过多区域） | `band_width=5`，后续根据验证调整；过大 → SAM 运行量激增 |
-| 边界带遗漏（深度梯度为零处） | 补 RGB Canny 边缘作为备用触发器；对深度中位数=0 的极端图片特殊处理 |
-| SAM 精修把建筑切成碎片 | 精修后验证连通分量数，异常增多时退回原始等距量化 |
-| 笔刷事件文件数量爆炸 | 每次「确认标定」后合并同一图片的事件文件为单文件 |
+| SAM mask_input 与 MobileSAM 兼容性 | 先用单张图验证 `predict(mask_input=...)` 是否在 MobileSAM 上正常返回；如有维度问题则降级为 "笔刷区域 = 膨胀后直接做洪水填充 + Canny 边界" |
+| 笔刷在缩放/拖拽后坐标偏移 | 所有笔画坐标存储为原图像素坐标（非 viewport 坐标），渲染时动态转换（已实现 `vp2img`） |
+| 深度缓存与注册表不同步 | 哈希去重不受文件名影响 |
+| SAM mobile_sam.pt 缺失 | draft 模式跳过所有 SAM 步骤；精修模式缺模型时返回明确错误信息 |
+| 笔刷事件文件数量爆炸 | 每次「确认标定」后可合并同一图片的事件文件 |
 | labeled.json 格式升级兼容 | `version` 字段 → `2`，ImageRegistry 加载时自动兼容 v1 |
-| 笔画在缩放/拖拽后坐标偏移 | 所有笔画坐标存储为原图像素坐标（非 viewport 坐标），渲染时动态转换 |
-| 深度缓存与注册表不同步 | 哈希去重不受文件名影响，深度缓存 stem 与注册表 filename 对齐 |
-| SAM mobile_sam.pt 缺失 | draft 模式跳过所有 SAM 步骤；精修模式缺模型时降级为纯等距量化 + 警告 |
-| CPU 环境 SAM 推理耗时 | 笔刷 SAM 精修只跑局部 bbox（< 1s）；边界带精修可选 draft 跳过 |

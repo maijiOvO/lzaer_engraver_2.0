@@ -31,7 +31,14 @@ curl -s -X POST http://localhost:8080/api/pipeline/canny \
   -H "Content-Type: application/json" \
   -d '{"image_id":"xxx","low":10,"high":50,"smooth_level":2}' | python3 -m json.tool
 
-# 下载两次结果到不同文件，用 md5sum 和像素对比验证
+# 下载两次结果到不同文件，用 certutil (Windows) 或 md5sum 对比验证
+# Windows 下：
+curl -o %TEMP%\test_a.png http://localhost:8080/outputs/xxx_canny.png
+curl -o %TEMP%\test_b.png http://localhost:8080/outputs/xxx_canny.png
+certutil -hashfile %TEMP%\test_a.png MD5
+certutil -hashfile %TEMP%\test_b.png MD5
+
+# Linux/Docker 下：
 curl -o /tmp/test_a.png http://localhost:8080/outputs/xxx_canny.png
 curl -o /tmp/test_b.png http://localhost:8080/outputs/xxx_canny.png
 md5sum /tmp/test_a.png /tmp/test_b.png
@@ -40,7 +47,10 @@ md5sum /tmp/test_a.png /tmp/test_b.png
 # 如果 MD5 不同 → 后端正常，问题在前端或浏览器缓存
 ```
 
-**关键**：后端日志（`docker logs laser-backend`）必须显示每次请求收到了不同的参数。如果日志里参数确实在变，但输出一样 → 算法 bug。如果日志里参数在变、输出也在变 → 后端没问题，往上查。
+**关键**：后端日志必须显示每次请求收到了不同的参数。
+- **本机运行**：查看 uvicorn 终端输出。
+- **Docker 运行**：`docker logs laser-backend`。
+如果日志里参数确实在变，但输出一样 → 算法 bug。如果日志里参数在变、输出也在变 → 后端没问题，往上查。
 
 ### 1.2 API URL 稳定性检查
 
@@ -160,7 +170,7 @@ const [svgVersion, setSvgVersion] = useState(0);
 
 | # | 验证项 | 方法 | 通过标准 |
 |---|--------|------|---------|
-| 1 | 后端收到正确参数 | `docker logs -f laser-backend` | 日志显示每次拖动后 POST 到达，参数与滑块值一致 |
+| 1 | 后端收到正确参数 | 查看后端终端日志（本机 uvicorn 或 `docker logs -f laser-backend`） | 日志显示每次拖动后 POST 到达，参数与滑块值一致 |
 | 2 | 后端产出不同结果 | curl 两次不同参数，md5sum 对比 | MD5 不同 |
 | 3 | 浏览器发出新图片请求 | Chrome DevTools → Network | 有新 GET 请求，Status 200（不是 304） |
 | 4 | 图片肉眼可见变化 | 拖动 low 从 50→10 | 右侧预览线条明显变密 |

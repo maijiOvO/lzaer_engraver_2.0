@@ -1,6 +1,8 @@
 # 已解决问题记录 (Past Resolved Issues)
 
 > 记录项目中遇到的每个问题、根因、以及最终修复方式。
+> 
+> **最新记录**：案例 31（2026-06-17 晚，谷底阈值保底）。自 2026-06-30 起，开发环境已从 Linux (WSL2) 完全迁移至 Windows 11 原生。详见 `README.md` 和 `AI_RULES.md` 最新版本。
 > 每个案例包含：症状 → 诊断 → 根因 → 修复 → 验证。
 
 ---
@@ -431,6 +433,31 @@
 - **修复**：`renderLayersView()` 中层 pane 使用 `left:-${fw}px; top:-${fw}px` 绝对定位
 - **验证**：frontend 源码含 `left:-${fw}px; top:-${fw}px` ✅
 - **影响文件**：`index.html` L444
+
+---
+
+## ⚠️ 复发型问题：外框 (fw) 偏移导致的图层错位
+
+> **性质**：复发型配置问题（多次因移除 fw 偏移导致图层错位）
+> **最近出现**：2026-06-30
+> **关联文件**：`index.html:445`, `brush_tool.js:64-66`
+>
+> ### 根因
+> 后端 `build_sam_driven_layers()` 生成的 mask 尺寸为 `(orig_h + 2*fw, orig_w + 2*fw)`。
+> mask 有效内容从 `(fw, fw)` 像素才开始（外围 fw px 为白色边框）。
+> 前端原图 `<img>` 尺寸为 `(orig_h, orig_w)`，原点在 `(0,0)`。
+> 
+> 要使图层 canvas 的内容区与原图对齐，**必须**在 world-pane 和 brushCanvas 上
+> 使用 `left:-fw; top:-fw` 负偏移。移除这个偏移会导致图层向右下角偏移 fw px。
+>
+> ### 必须保持的三点一致性
+> 1. `index.html` `renderLayersView()` — world-pane 的 `left:-${fw}px; top:-${fw}px`
+> 2. `brush_tool.js` `enable()` — brushCanvas 的 `left: -fw; top: -fw`
+> 3. 以上两项的 fw 值必须与后端 `frame_width` 参数一致
+>
+> ### 防止复发
+> - 修改前端图层布局时，务必确认 mask 实际尺寸
+> - 如果未来后端改为输出原图尺寸的 mask（去掉外框 padding），这三处必须同步移除 fw 偏移
 
 ---
 

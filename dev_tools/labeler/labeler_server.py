@@ -101,6 +101,7 @@ class BrushRefineRequest(BaseModel):
     layer_index: int
     strokes: list[BrushStrokes]  # 多组笔刷笔画
     current_mask_key: str  # 当前 mask 的文件名 stem
+    frame_width: int = Field(default=50, ge=20, le=200)  # 分割时的外框宽度，用于裁剪frame图
 
 
 # ── 图片扫描 ──────────────────────────────────────────────
@@ -209,6 +210,7 @@ def run_segmentation(req: SegmentRequest) -> dict:
             image_shape=(orig_h, orig_w),
             frame_width=req.frame_width,
             min_island_area=req.min_island_area,
+            skip_connectivity_repair=True,
         )
         frame_mask_full = frame_mask  # 已是原图分辨率，跳过 Step 6
     elif refine_mode == "none":
@@ -337,9 +339,12 @@ def run_segmentation(req: SegmentRequest) -> dict:
     except Exception:
         features = None
 
+    mask_key = f"{stem}{suffix}"
+
     return {
         "image_name": req.image_name,
         "overlay_url": f"/preview/{overlay_path.name}",
+        "mask_key": mask_key,
         "layers": layers_info,
         "stats": stats,
         "scores": scores,
@@ -527,10 +532,16 @@ def api_skip(req: SkipRequest):
 
 @app.post("/api/brush-refine")
 def api_brush_refine(req: BrushRefineRequest):
-    """笔刷式 SAM 局部精修。
+    """笔刷式 SAM 局部精修（修订版 — SAM mask_input + 布尔运算）。
 
-    接受开发者在当前层蒙版上涂抹的笔刷笔画，
-    转换为 SAM point prompts 后运行局部精修。
+    流程：
+    1. 笔刷笔画 → 光栅化为原图分辨率粗掩码
+    2. 粗掩码缩小到 256×256 → SAM mask_input
+    3. SAM predict(mask_input=...) → 像素级精确边界
+    4. 精修掩码上采样回原图分辨率 (_upscale_mask_smooth)
+    5. 纳入: new_mask = old_mask | SAM精修掩码  （只加不删）
+       排除: new_mask = old_mask & ~SAM精修掩码 （只删不加）
+    6. 写回蒙版文件 + frame文件 + 笔刷事件记录
     """
     try:
         import torch
@@ -546,46 +557,66 @@ def api_brush_refine(req: BrushRefineRequest):
         if image is None:
             raise ValueError(f"无法解码: {req.image_name}")
 
+        orig_h, orig_w = image.shape[:2]
+
         # 读取当前蒙版
         mask_key = req.current_mask_key
         mask_path = SAM_OUTPUT_DIR / f"{mask_key}_mask_{req.layer_index}.png"
         if not mask_path.exists():
             raise FileNotFoundError(f"蒙版不存在: {mask_path}")
 
-        current_mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
-        if current_mask is None:
+        current_mask_u8 = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+        if current_mask_u8 is None:
             raise ValueError(f"无法解码蒙版: {mask_path}")
-        current_bin = current_mask > 127
+        old_mask_bin = current_mask_u8 > 127
 
-        # ── 收集笔刷点 ──
-        include_points: list[list[int]] = []
-        exclude_points: list[list[int]] = []
+        # ── Step 1: 光栅化笔刷笔画为原图分辨率粗掩码 ──
+        include_mask = np.zeros((orig_h, orig_w), dtype=np.uint8)
+        exclude_mask = np.zeros((orig_h, orig_w), dtype=np.uint8)
 
         for stroke in req.strokes:
             pts = stroke.points
-            if not pts:
+            if not pts or len(pts) < 2:
                 continue
-            # 对笔画采样（每条笔画取 3 个均匀点），避免点太多
-            n_sample = min(3, len(pts))
-            indices = [int(len(pts) * i / n_sample) for i in range(n_sample)]
-            sampled = [pts[j] for j in indices if j < len(pts)]
-
+            # 用 OpenCV 画连续笔画（带线宽）
+            draw_canvas = np.zeros((orig_h, orig_w), dtype=np.uint8)
+            pts_array = np.array(pts, dtype=np.int32).reshape((-1, 1, 2))
+            cv2.polylines(draw_canvas, [pts_array], isClosed=False,
+                          color=255, thickness=20,
+                          lineType=cv2.LINE_AA)
             if stroke.brush_type == "include":
-                include_points.extend(sampled)
+                include_mask = np.maximum(include_mask, draw_canvas)
             elif stroke.brush_type == "exclude":
-                exclude_points.extend(sampled)
+                exclude_mask = np.maximum(exclude_mask, draw_canvas)
 
-        if not include_points and not exclude_points:
-            raise ValueError("没有有效的笔刷点")
+        # 笔刷膨胀填补间隙
+        brush_dilate_size = 5
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
+                                           (brush_dilate_size * 2 + 1, brush_dilate_size * 2 + 1))
+        include_mask = cv2.dilate(include_mask, kernel, iterations=1)
+        exclude_mask = cv2.dilate(exclude_mask, kernel, iterations=1)
 
-        # ── 计算笔刷覆盖区域的 bbox ──
-        all_pts = include_points + exclude_points
-        xs = [p[0] for p in all_pts]
-        ys = [p[1] for p in all_pts]
-        bbox_x1, bbox_y1 = max(0, min(xs) - 30), max(0, min(ys) - 30)
-        bbox_x2, bbox_y2 = min(image.shape[1], max(xs) + 30), min(image.shape[0], max(ys) + 30)
+        # 决定使用哪份笔刷掩码（多组笔画时按多数类型）
+        include_count = sum(1 for s in req.strokes if s.brush_type == "include")
+        exclude_count = sum(1 for s in req.strokes if s.brush_type == "exclude")
+        primary_brush_type = "include" if include_count >= exclude_count else "exclude"
 
-        # ── SAM 推理 ──
+        if primary_brush_type == "include":
+            rough_mask = include_mask
+        else:
+            rough_mask = exclude_mask
+
+        if rough_mask.sum() == 0:
+            raise ValueError("笔刷区域为空，请重新涂抹")
+
+        # ── Step 2: 粗掩码 → 256×256 → SAM mask_input ──
+        mask_256 = cv2.resize(rough_mask, (256, 256), interpolation=cv2.INTER_NEAREST)
+        # SAM 的 mask_input 需要未归一化的 logits：前景=+10，背景=-10
+        mask_logits = np.where(mask_256 > 127, 10.0, -10.0).astype(np.float32)
+        mask_input = torch.as_tensor(mask_logits, dtype=torch.float32)
+        mask_input = mask_input.unsqueeze(0).unsqueeze(0)  # [1, 1, 256, 256]
+
+        # ── Step 3: SAM 推理 ──
         model = _get_sam_model()
         sam_image = _preprocess_image(image, max_dim=1200)
         if sam_image.shape[-1] == 3:
@@ -596,27 +627,24 @@ def api_brush_refine(req: BrushRefineRequest):
         predictor = SamPredictor(model)
         predictor.set_image(sam_rgb)
 
-        # 转换坐标到 SAM 空间
-        scale_x = sam_rgb.shape[1] / image.shape[1]
-        scale_y = sam_rgb.shape[0] / image.shape[0]
-
-        include_sam = [[int(p[0]*scale_x), int(p[1]*scale_y)] for p in include_points]
-        exclude_sam = [[int(p[0]*scale_x), int(p[1]*scale_y)] for p in exclude_points]
-
-        point_coords = np.array(include_sam + exclude_sam)
-        point_labels = np.array([1]*len(include_sam) + [0]*len(exclude_sam))
-
-        box_sam = np.array([
-            int(bbox_x1*scale_x), int(bbox_y1*scale_y),
-            int(bbox_x2*scale_x), int(bbox_y2*scale_y),
-        ])
+        # 提取 BBox prompt（约束 SAM 只在笔刷区域搜索，提升精准度）
+        all_xs = [p[0] for s in req.strokes for p in s.points if s.points]
+        all_ys = [p[1] for s in req.strokes for p in s.points if s.points]
+        if all_xs and all_ys:
+            x_min, y_min = max(0, min(all_xs)), max(0, min(all_ys))
+            x_max, y_max = min(orig_w, max(all_xs)), min(orig_h, max(all_ys))
+            x_max = max(x_min + 1, x_max)
+            y_max = max(y_min + 1, y_max)
+            box_prompt = np.array([x_min, y_min, x_max, y_max], dtype=np.float32)
+        else:
+            box_prompt = None
 
         with torch.inference_mode():
-            # 只传 box（point_coords 与 box 组合在 MobileSAM 中有维度冲突）
             masks, scores, _ = predictor.predict(
                 point_coords=None,
                 point_labels=None,
-                box=box_sam[None, :],
+                box=box_prompt,
+                mask_input=mask_input,
                 multimask_output=False,
             )
 
@@ -625,40 +653,50 @@ def api_brush_refine(req: BrushRefineRequest):
         if score < 0.3:
             return {"ok": False, "message": f"SAM 置信度过低: {score:.2f}", "score": score}
 
-        # 缩放回原图分辨率
-        import app.utils.sam_engine as se
-        refined_full = se._upscale_mask_smooth(
-            refined_sam, image.shape[0], image.shape[1],
-        )
+        # ── Step 4: SAM predict 返回的 mask 已是原图分辨率，直接使用 ──
 
-        # ── 保存精修后的蒙版 ──
-        refined_u8 = refined_full.astype(np.uint8) * 255
-        cv2.imwrite(str(mask_path), refined_u8)
+        # ── Step 5: 布尔运算 ──
+        if primary_brush_type == "include":
+            # 纳入：旧蒙版 | SAM精修掩码（只加不删）
+            new_mask_bin = old_mask_bin | refined_sam
+        else:
+            # 排除：旧蒙版 & ~SAM精修掩码（只删不加）
+            new_mask_bin = old_mask_bin & ~refined_sam
 
-        # 保存 frame 版本（去除边框的纯内容）
+        new_mask_u8 = new_mask_bin.astype(np.uint8) * 255
+
+        # ── Step 6: 写回蒙版文件 ──
+        cv2.imwrite(str(mask_path), new_mask_u8)
+
+        # 保存 frame 版本（去除边框的纯内容，fw 使用请求参数）
         frame_path = SAM_OUTPUT_DIR / f"{mask_key}_frame_{req.layer_index}.png"
-        pure = refined_u8.copy()
-        # 边框区域：四边 frame_width 像素
-        fw = 50  # 默认边框宽度
+        fw = req.frame_width
+        pure = new_mask_u8.copy()
         pure[:fw, :] = 0
         pure[-fw:, :] = 0
         pure[:, :fw] = 0
         pure[:, -fw:] = 0
         cv2.imwrite(str(frame_path), pure)
 
-        fg_pct = round(float(np.count_nonzero(refined_u8)) / refined_u8.size * 100, 1)
+        fg_pct = round(float(np.count_nonzero(new_mask_u8)) / new_mask_u8.size * 100, 1)
 
-        # ── 记录笔刷事件 ─────────────────────────────────
-        fg_before = round(float(np.count_nonzero(current_bin)) / current_bin.size * 100, 1)
-        bbox_tuple = (bbox_x1, bbox_y1, bbox_x2, bbox_y2)
-        total_pts = len(include_points) + len(exclude_points)
-        brush_types_in_stroke = list(set(s.brush_type for s in req.strokes))
-        primary_type = brush_types_in_stroke[0] if len(brush_types_in_stroke) == 1 else "mixed"
+        # ── 笔刷事件记录 ─────────────────────────────────
+        fg_before = round(float(np.count_nonzero(old_mask_bin)) / old_mask_bin.size * 100, 1)
+        total_pts = sum(len(s.points) for s in req.strokes)
+
+        # 笔刷覆盖bbox
+        all_xs = [p[0] for s in req.strokes for p in s.points if s.points]
+        all_ys = [p[1] for s in req.strokes for p in s.points if s.points]
+        if all_xs and all_ys:
+            bbox_tuple = (max(0, min(all_xs)), max(0, min(all_ys)),
+                          min(orig_w, max(all_xs)), min(orig_h, max(all_ys)))
+        else:
+            bbox_tuple = (0, 0, orig_w, orig_h)
 
         img_hash = hash_file(img_path)
         try:
-            depth_cache = SAM_OUTPUT_DIR / f"{Path(req.image_name).stem}_depth.npy"
-            dm = np.load(str(depth_cache)) if depth_cache.exists() else None
+            depth_cache_path = SAM_OUTPUT_DIR / f"{Path(req.image_name).stem}_depth.npy"
+            dm = np.load(str(depth_cache_path)) if depth_cache_path.exists() else None
         except Exception:
             dm = None
 
@@ -666,7 +704,7 @@ def api_brush_refine(req: BrushRefineRequest):
             image_hash=img_hash,
             image_name=req.image_name,
             layer_index=req.layer_index,
-            brush_type=primary_type,
+            brush_type=primary_brush_type,
             point_count=total_pts,
             bbox=bbox_tuple,
             sam_score=score,
@@ -682,6 +720,7 @@ def api_brush_refine(req: BrushRefineRequest):
             "fg_pct": fg_pct,
             "sam_score": score,
             "point_count": total_pts,
+            "brush_type": primary_brush_type,
         }
 
     except FileNotFoundError as e:

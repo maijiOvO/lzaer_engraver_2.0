@@ -12,3 +12,6 @@ scipy>=1.10
 # Depth-Anything-V2 + HuggingFace backend (2026-06-23)
 transformers>=4.40
 depth-anything-v2>=0.1.0
+# GPU 加速 — Intel Arc B370 via ONNX Runtime DirectML
+onnxruntime-directml>=1.24.0
+onnx>=1.16.0

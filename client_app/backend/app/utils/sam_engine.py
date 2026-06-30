@@ -15,6 +15,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+import torch
 from loguru import logger
 
 # ── Constants ───────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ PAPER_SCULPTURE_PRESET: dict[str, Any] = {
     "points_per_side": 64,
     "pred_iou_thresh": 0.88,
     "stability_score_thresh": 0.95,
-    "crop_n_layers": 1,
+    "crop_n_layers": 0,  # 关闭裁剪推理，消除网格裁切伪影
     "min_mask_region_area": 50,
     "crop_n_points_downscale_factor": 2,
     "max_sam_dim": 1200,
@@ -36,17 +37,69 @@ PAPER_SCULPTURE_PRESET: dict[str, Any] = {
 # ── Global model singleton ──────────────────────────────────────────
 _sam_model: Any = None
 _device: str | None = None
+_onnx_encoder_enabled: bool | None = None  # None = not yet probed
 
 
 def _resolve_device() -> str:
     """Resolve the best available torch device."""
-    import torch
-
     if torch.cuda.is_available():
         return "cuda"
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def _probe_onnx_dml_encoder() -> bool:
+    """Detect whether ONNX Runtime + DirectML encoder is available.
+
+    Caches the result so probing only happens once per process.
+    """
+    global _onnx_encoder_enabled
+    if _onnx_encoder_enabled is not None:
+        return _onnx_encoder_enabled
+
+    try:
+        from app.utils.onnx_engine import is_dml_available, get_sam_encoder_session
+
+        if not is_dml_available():
+            logger.info("[SAM] DirectML 不可用，使用 PyTorch CPU 编码器")
+            _onnx_encoder_enabled = False
+            return False
+
+        # Trigger session creation early to catch init errors
+        get_sam_encoder_session()
+        logger.info("[SAM] ONNX Runtime + DirectML 可用，将启用 GPU 加速编码器")
+        _onnx_encoder_enabled = True
+        return True
+    except Exception as exc:
+        logger.warning("[SAM] ONNX 编码器探测失败 ({}), 回退到 PyTorch CPU", exc)
+        _onnx_encoder_enabled = False
+        return False
+
+
+def _wrap_encoder_for_onnx(original_encoder):
+    """Wrap the PyTorch image_encoder so calls go through ONNX Runtime DML.
+
+    Preserves ``img_size`` attribute required by MobileSAM's mask generator.
+    """
+    import numpy as np
+
+    from app.utils.onnx_engine import run_sam_encoder
+
+    class _ONNXEncoderWrapper:
+        """Thin wrapper that delegates image_encoder calls to ONNX Runtime."""
+
+        def __init__(self, orig):
+            self.img_size = getattr(orig, "img_size", 1024)
+
+        def __call__(self, x: torch.Tensor) -> torch.Tensor:
+            # x is already preprocessed by model.preprocess() —
+            # shape (1, 3, 1024, 1024), float32, on CPU.
+            x_np = x.cpu().numpy().astype(np.float32)
+            result = run_sam_encoder(x_np)  # → (1, 256, 64, 64)
+            return torch.from_numpy(result)
+
+    return _ONNXEncoderWrapper(original_encoder)
 
 
 def _download_model() -> str:
@@ -90,27 +143,31 @@ def _get_sam_model():
         _sam_model.to(device=_device)
         _sam_model.eval()
 
-        # Optimise the image encoder for CPU inference.
-        # Strategy: try torch.jit.trace first (no C++ compiler needed),
-        # fall back to torch.compile if available and g++ is present.
-        if _device == "cpu":
+        # ── Encoder optimization ─────────────────────────────────
+        if _device == "cpu" and _probe_onnx_dml_encoder():
+            # Priority 1: ONNX Runtime + DirectML GPU accelerator
+            # Use object.__setattr__ to bypass nn.Module.__setattr__ type check
+            _original_encoder = _sam_model.image_encoder
+            object.__setattr__(
+                _sam_model, "image_encoder",
+                _wrap_encoder_for_onnx(_original_encoder),
+            )
+            logger.info("[SAM] 图像编码器 → ONNX Runtime + DirectML (GPU)")
+        elif _device == "cpu":
+            # Priority 2: PyTorch JIT / compile (pure CPU)
             _original_encoder = _sam_model.image_encoder
             try:
-                # torch.jit.trace — lightweight, no compiler dependency.
                 dummy = torch.randn(1, 3, 1024, 1024)
                 with torch.inference_mode():
                     _sam_model.image_encoder = torch.jit.trace(
                         _original_encoder, dummy
                     )
-                # The traced module loses non-forward attributes;
-                # copy img_size back — MobileSAM's mask generator needs it.
                 if hasattr(_original_encoder, "img_size"):
                     _sam_model.image_encoder.img_size = _original_encoder.img_size
                 logger.info("[SAM] 图像编码器已追踪 (torch.jit)")
             except Exception as exc:
                 _sam_model.image_encoder = _original_encoder
                 logger.warning("[SAM] jit.trace 失败 ({})", exc)
-                # Try torch.compile as fallback (requires g++ in Docker).
                 if hasattr(torch, "compile"):
                     try:
                         _sam_model.image_encoder = torch.compile(

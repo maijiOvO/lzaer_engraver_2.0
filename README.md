@@ -2,7 +2,7 @@
 
 本项目是一个高阶的"图像转 SVG 激光雕刻/纸雕"工具。核心目标是将任意风景/建筑照片转化为严格 1px 线宽、无断裂、支持物理分层的 SVG 矢量图。
 
-> **运行环境**：本项目完全基于 Linux 环境运行（Docker 容器 + 宿主机 Linux），不涉及 Windows 系统。
+> **运行环境**：本项目已迁移至 Windows 11 原生环境。`client_app` 支持两种运行方式：**本机运行**（`uvicorn` + `npm run dev`）或 **Docker Compose**（Docker Desktop for Windows）。`dev_tools/` 直接在 Windows 原生 Python 环境运行。
 
 ---
 
@@ -12,7 +12,9 @@
 
 ### 1. `client_app/` (面向用户的客户端)
 - **技术栈**：React 19 + Vite (前端) / FastAPI + OpenCV (后端)
-- **运行方式**：**必须通过 Docker Compose 运行**。完全隔离在容器网络中。
+- **运行方式**（二选一）：
+  - **本机运行**：`uvicorn app.main:app --port 8080`（后端）+ `npm run dev`（前端）。适合开发调试，无需 Docker。
+  - **Docker Compose**：`docker-compose up -d`。完全隔离在容器网络中，适合生产部署和 CI 环境。
 - **职责**：处理用户的图片上传，执行 7 步核心图像管线，返回 SVG。
 
 ### 2. `dev_tools/` (面向开发者的训练与调试工具)
@@ -70,6 +72,37 @@
 ## 🚀 快速启动指南
 
 ### 启动用户客户端 (Web 应用)
+
+**方式一：本机运行（推荐开发使用）**
+```bash
+# 终端 1 — 后端
+cd client_app/backend
+uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+
+# 终端 2 — 前端
+cd client_app/frontend
+npm install
+npm run dev
+```
+前端访问 `http://localhost:5173`，后端代理到 `http://localhost:8080`。
+
+**方式二：Docker Compose（推荐部署使用）**
 ```bash
 cd client_app
 docker-compose up -d
+```
+前端映射宿主机 `5173`，后端映射宿主机 `8080`。
+
+### 启动开发者工具 (标定器)
+```bash
+python dev_tools/labeler/labeler_server.py
+```
+
+### 运行算法测试脚本
+```bash
+# Canny 线稿测试
+python dev_tools/scripts/test_canny.py
+
+# 全管线端到端测试
+python dev_tools/scripts/test_pipeline.py
+```

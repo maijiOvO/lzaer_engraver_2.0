@@ -1,5 +1,9 @@
 # 🐳 Docker 基础设施标准指引 (Docker Infra Guide)
 
+> ⚠️ **重要上下文**：本文件定义的 Docker 配置为历史遗留的 WSL2 Linux 方案，当前保留为可选部署方式。
+> **当前主要开发方式**：Windows 11 本机运行（`uvicorn app.main:app --reload` + `npm run dev`）。
+> Docker Compose 仅用于生产部署或 CI 环境，不作日常开发使用。
+
 **【最高警告】本文件定义了 `client_app` 的容器化基建标准。所有涉及 Dockerfile、docker-compose.yml 的修改，必须以本文件为唯一真理。严禁 AI 代理擅自降级配置或使用碎片化挂载！**
 
 ---
@@ -12,7 +16,7 @@
 
 ### 1.2 Node.js 环境隔离 (Anonymous Volumes)
 - **标准**：前端服务必须强制配置匿名卷 `- /app/node_modules`。
-- **原因**：防止 Windows/WSL 宿主机的文件系统权限或宿主机本地生成的 npm 缓存覆盖 Linux 容器内部的原生编译包（如 esbuild 等 C++ 扩展包），杜绝跨系统运行报错。
+- **原因**：防止 Windows 宿主机的文件系统权限或本地生成的 npm 缓存覆盖 Linux 容器内部的原生编译包（如 esbuild 等 C++ 扩展包），杜绝跨系统运行报错。在 Docker Desktop for Windows 中同样适用。
 
 ---
 

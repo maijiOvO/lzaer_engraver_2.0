@@ -3,17 +3,22 @@
 **【全局指令】在本项目中，你不仅是程序员，更是严格遵守架构红线的系统架构师。编写任何代码前，必须优先查阅并遵守以下 10 大准则。**
 
 ## 1. 基础设施神圣不可侵犯 (Docker & Infrastructure Locked) 【最高优先级】
-- **热重载机制 (Hot Reload)**：所有前端和后端的业务源码（`.py`, `.tsx` 等）均已通过 Docker volume 映射至容器内部。当你修改业务代码时，系统会自动热重载生效。
-- **绝对禁止盲目 Build**：**严禁**为了测试业务代码的改动而执行 `docker-compose build` 或 `docker compose up --build`！
+- **运行方式**：当前开发环境已迁移至 Windows 11 原生。`client_app` 后端通过 `uvicorn app.main:app --reload` 本机运行（自动热重载），前端通过 `npm run dev`（Vite HMR）。Docker Compose 保留为可选部署方案。
+- **热重载机制 (Hot Reload)**：
+  - **本机运行**：后端 `--reload` 自动侦测 `.py` 变更；前端 Vite HMR 自动推送 `.tsx/.ts/.css` 变更。
+  - **Docker 运行**：源码通过 Volume 映射至容器内部，修改业务代码后自动热重载生效。
+- **绝对禁止盲目 Build**：**严禁**为了测试业务代码的改动而执行 `docker-compose build` 或 `docker compose up --build`！仅当 `requirements.txt` / `package.json` / `Dockerfile.dev` 变更时才能 rebuild。
 - **禁止私改基建**：未经我明确授权，**绝对禁止**擅自修改 `Dockerfile.dev`、`docker-compose.yml`，**绝对禁止**在其中编写切换 apt/pip 镜像源的 sed 替换脚本。
-- **依赖问题沟通**：如果运行缺少库/报错找不到模块，必须先向我报告，由我决定是写进 `requirements.txt` / `package.json` 还是进容器手动装。
-- **详细的 Docker 挂载标准与大模型持久化配置，必须严格遵守根目录下的 DOCKER_INFRA_GUIDE.md
+- **依赖问题沟通**：如果运行缺少库/报错找不到模块，必须先向我报告，由我决定是写进 `requirements.txt` / `package.json` 还是本机 `pip install` / `npm install`。
+- **详细的 Docker 挂载标准与大模型持久化配置，必须严格遵守根目录下的 DOCKER_INFRA_GUIDE.md**（注：Docker 配置为历史遗留的 WSL2 方案；当前开发以 Windows 本机运行为主）
 
 ## 2. 顶层架构隔离（一国两制）
 本项目严格分为两个绝对隔离的顶级目录，严禁跨界污染：
 - **`client_app/` (面向用户的 Web 应用)**
   - 包含 `frontend/` (React+Vite) 和 `backend/` (FastAPI)。
-  - **运行规则**：必须且只能通过 `docker-compose.yml` 运行，隔离在容器网络中。
+  - **运行规则**（二选一）：
+    - **本机运行**：`uvicorn app.main:app --port 8080 --reload`（后端）+ `npm run dev`（前端）。当前主要开发方式。
+    - **Docker Compose**：`docker-compose up -d`，完全隔离在容器网络中。保留为可选部署方案。
 - **`dev_tools/` (面向开发者的本地工具与训练脚本)**
   - 存放纯本地 Python 脚本（如 OpenCV GUI 标注、模型训练、基准测试）。
   - **运行规则**：直接在宿主机运行。**绝对禁止**引入 FastAPI/Flask 或监听任何端口。如需调用后端算法，通过 `sys.path` 动态引入 `client_app/backend` 的纯函数模块。
@@ -36,7 +41,7 @@
   ├── API_CONTRACT.md                   # 前后端 API 契约
   │
   ├── 📂 client_app/                   # 【战区一：面向用户的 Web 应用 (Docker 全隔离)】
-  │   ├── docker-compose.yml           # 唯一运行环境：绑定前端 5173，后端 8080，挂载代码目录
+  │   ├── docker-compose.yml           # Docker 运行环境（可选）：绑定前端 5173，后端 8080，挂载代码目录
   │   │
   │   ├── frontend/                    # ⚛️ 前端 (React 19 + Vite + TypeScript)
   │   │   ├── Dockerfile.dev           
@@ -120,7 +125,7 @@
 
 ## 4. 网络与端口（绝对红线）
 - **固定端口**：前端固定映射宿主机 `5173`，后端固定映射宿主机 `8080`，后端服务监听 IP 必须为 `0.0.0.0`。
-- **禁止换端口**：遇到端口被占用或无法连通时，**严禁修改代码中的端口号！严禁编写自动寻找空闲端口的逻辑！** 你的任务是排查 Docker 容器状态，而不是改代码。
+- **禁止换端口**：遇到端口被占用或无法连通时，**严禁修改代码中的端口号！严禁编写自动寻找空闲端口的逻辑！** 你的任务是排查服务状态（本机进程或 Docker 容器），而不是改代码。
 
 ## 5. 日志与调试规范 (Error Logging)
 为了实现高效 Debug，必须严格执行以下防御性编程规范：

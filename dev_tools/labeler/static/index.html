@@ -385,8 +385,9 @@ function setMode(mode) {
       const layers = segResult.layers || [];
       if (layers.length > 0) {
         const img = document.querySelector('#world img');
+        const fw = segResult.params?.frame_width || 50;
         BrushTool.init();
-        BrushTool.enable(img ? img.naturalWidth : 800, img ? img.naturalHeight : 600);
+        BrushTool.enable(img ? img.naturalWidth : 800, img ? img.naturalHeight : 600, fw);
         setReviewLayer(0);
       }
     }
@@ -735,11 +736,13 @@ function setReviewLayer(idx) {
 
 function applyBrushSam() {
   if (!segResult) return;
-  const maskKey = segResult.overlay_url.match(/preview\/(.+?)_n\d+/);
-  const key = maskKey ? maskKey[1] : curImageName.replace(/\.\w+$/, '');
-  // Build the full key from overlay_url stem
-  const ovStem = segResult.overlay_url.split('/').pop().replace('.png','');
-  BrushTool.applySam(reviewActiveLayer, ovStem.replace(/_n\d+.*/, ''));
+  // Use the mask_key returned by backend — no fragile string parsing
+  const maskKey = segResult.mask_key || '';
+  if (!maskKey) {
+    alert('mask_key 缺失，请重新运行分割。');
+    return;
+  }
+  BrushTool.applySam(reviewActiveLayer, maskKey);
 }
 
 function refreshLayerDisplay(idx) {

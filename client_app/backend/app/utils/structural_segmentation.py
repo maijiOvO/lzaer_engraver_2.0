@@ -370,33 +370,8 @@ def repair_layer_mask(
             islands_erased += 1
             continue
 
-        # ── 大岛 → 桥接到外框 ──────────────────────────────────
-        # 用距离变换找到岛上距离外框最近的点
-        frame_dist = cv2.distanceTransform(
-            (~frame_bin).astype(np.uint8), cv2.DIST_L2, 5,
-        )
-        # 岛上各点到外框的距离
-        island_dist = frame_dist[comp_mask]
-        min_idx = np.argmin(island_dist)
-        island_coords = np.argwhere(comp_mask)
-        island_pt = tuple(island_coords[min_idx])  # (y, x)
-
-        # 在 frame 上找距离 island_pt 最近的点
-        frame_coords = np.argwhere(frame_bin)
-        diff = frame_coords - np.array(island_pt)
-        dists = np.sum(diff ** 2, axis=1)
-        frame_pt = tuple(frame_coords[np.argmin(dists)])
-
-        # Bresenham 画桥（1px 宽）
-        line_pts = _bressenham_line(
-            island_pt[1], island_pt[0],
-            frame_pt[1], frame_pt[0],
-        )
-        for r, c in line_pts:
-            if 0 <= r < h and 0 <= c < w:
-                repaired[r, c] = True
-
-        bridges_built += 1
+        # ── 桥接逻辑已移除 — 允许合法孤岛存在，避免伪影 ──
+        # 大岛（≥ min_island_area）不做任何处理，直接保留
 
     logger.debug(
         "[结构分层]   修复 | bridges={} erased={} components={}",
@@ -481,6 +456,7 @@ def build_sam_driven_layers(
     image_shape: tuple[int, int],
     frame_width: int = 50,
     min_island_area: int = 100,
+    skip_connectivity_repair: bool = False,
 ) -> tuple[list[np.ndarray], np.ndarray, list[dict]]:
     """新管线：SAM 自动分割 → 深度中位数归属 → 连通修复。
 
@@ -610,14 +586,36 @@ def build_sam_driven_layers(
         for m in layer_masks_u8
     ]
 
-    # ── Step 5: 逐层连通性修复 ───────────────────────────────
+    # ── Step 5: 逐层连通性修复（可跳过）───────────────────
     layer_masks_final: list[np.ndarray] = []
     stats: list[dict] = []
 
     for i, raw_u8 in enumerate(layer_masks_padded):
-        repaired, bridges, erased = repair_layer_mask(
-            raw_u8, frame_mask, min_island_area,
+        if skip_connectivity_repair:
+            # 跳过连通性修复：直接将边框染白，保留原始内容
+            repaired = raw_u8.copy()
+            repaired[frame_mask > 0] = 255
+            bridges, erased = 0, 0
+        else:
+            repaired, bridges, erased = repair_layer_mask(
+                raw_u8, frame_mask, min_island_area,
+            )
+        # ── 细碎伪影过滤：消除 SAM 网格裁切残留的细长缝隙 ──
+        n_labels, labels, cc_stats, _ = cv2.connectedComponentsWithStats(
+            repaired, connectivity=8,
         )
+        artifacts_erased = 0
+        for lid in range(1, n_labels):
+            _, _, cw, ch, area = cc_stats[lid]
+            min_dim = max(1, min(cw, ch))
+            max_dim = max(cw, ch)
+            aspect_ratio = max_dim / min_dim
+            if min_dim <= 12 and aspect_ratio > 15 and area < 15000:
+                repaired[labels == lid] = 0
+                artifacts_erased += 1
+        if artifacts_erased > 0:
+            erased += artifacts_erased
+
         layer_masks_final.append(repaired)
 
         fg = int(np.count_nonzero(repaired))
@@ -631,11 +629,12 @@ def build_sam_driven_layers(
 
     logger.info(
         "[SAM驱动分层] 完成 | layers={} sam_fragments={} frame={}px "
-        "bridges={} erased={} uncovered={:.1f}%",
+        "bridges={} erased={} uncovered={:.1f}%{}",
         n_layers, fragment_count, frame_width,
         sum(s["bridges_built"] for s in stats),
         sum(s["islands_erased"] for s in stats),
         uncovered_pct,
+        " (跳过连通修复)" if skip_connectivity_repair else "",
     )
 
     return layer_masks_final, frame_mask, stats

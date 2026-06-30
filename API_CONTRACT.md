@@ -7,7 +7,7 @@ AI 代理在开发 FastAPI 路由（`backend/app/api/`）、Pydantic 模型（`m
 
 ## 1. 全局规约 (Global Rules)
 
-- **运行环境**: 本项目完全基于 Linux 环境，不涉及 Windows 系统。
+- **运行环境**: 本项目当前运行于 Windows 11 原生环境。`client_app` 支持本机运行（`uvicorn` + `npm run dev`）或 Docker Desktop for Windows。Base URL 不变。
 - **Base URL**: `http://localhost:8080/api`
 - **请求格式**: 除文件上传（`multipart/form-data`）外，所有 POST 请求均使用 `application/json`。
 - **数据流转**: 后端处理完的图像均保存在容器的 `/app/outputs/` 目录下，并向前端返回可访问的静态 URL（如 `/outputs/img_123_canny.png`）。前端通过该 URL 渲染画布。

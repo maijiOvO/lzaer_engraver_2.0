@@ -33,6 +33,9 @@ const BrushTool = {
   imgW: 0,
   imgH: 0,
 
+  /** Frame width for coordinate compensation (same as segmentation frame_width) */
+  frameWidth: 0,
+
   /** ── Initialise ───────────────────────────────── */
   init() {
     // Create brush overlay canvas
@@ -50,11 +53,22 @@ const BrushTool = {
   },
 
   /** ── Enable / Disable brush mode ─────────────── */
-  enable(imgW, imgH) {
+  enable(imgW, imgH, frameWidth) {
     this._enabled = true;
     this.imgW = imgW;
     this.imgH = imgH;
+    this.frameWidth = frameWidth || 0;
     this.strokes = [];
+
+    // 笔刷 canvas 与图层 pane 对齐 — 图层蒙版尺寸为 orig + 2*fw（外框延伸），
+    // 有效内容从 (fw, fw) 像素开始。 用 left: -fw / top: -fw 将笔刷画布偏移，
+    // 使笔刷坐标与图层内容区的世界坐标对齐。
+    // ⚠️ 此偏移必须与 index.html renderLayersView() 中的 world-pane 保持一致。
+    if (this.canvas && this.frameWidth > 0) {
+      this.canvas.style.left = (-this.frameWidth) + 'px';
+      this.canvas.style.top = (-this.frameWidth) + 'px';
+    }
+
     document.getElementById('brushToolbar').classList.add('show');
     document.getElementById('gestureHint').textContent = '🖱 滚轮缩放 · Ctrl+拖拽平移 · 笔刷涂抹 · 双击复位';
     this._resize();
@@ -122,14 +136,21 @@ const BrushTool = {
   /** ── Coordinate conversion ───────────────────── */
   /** Viewport → Image coordinates */
   vp2img(vpX, vpY) {
+    // 减去 #viewport 在页面中的偏移（修复侧面栏导致的位置偏差）
+    const rect = document.getElementById('viewport').getBoundingClientRect();
+    const cx = vpX - rect.left;
+    const cy = vpY - rect.top;
     // Account for zoom/pan transform on #world
-    const ix = (vpX - zoom.x) / zoom.scale;
-    const iy = (vpY - zoom.y) / zoom.scale;
+    const ix = (cx - zoom.x) / zoom.scale;
+    const iy = (cy - zoom.y) / zoom.scale;
     return [Math.round(ix), Math.round(iy)];
   },
 
   /** ── Event binding ────────────────────────────── */
   _bindEvents() {
+    if (this._eventsBound) return;  // 防止重复绑定（多次进出 review 模式）
+    this._eventsBound = true;
+
     const vp = document.getElementById('viewport');
 
     vp.addEventListener('mousedown', (e) => {
@@ -155,6 +176,11 @@ const BrushTool = {
     window.addEventListener('mouseup', () => {
       if (!this._enabled || !this._drawing) return;
       this._drawing = false;
+      if (this._currentStroke && this._currentStroke.points.length === 1) {
+        // 单击涂抹 — 补一个偏移1px的点，使笔画有效
+        const [x, y] = this._currentStroke.points[0];
+        this._currentStroke.points.push([x + 1, y]);
+      }
       if (this._currentStroke && this._currentStroke.points.length > 1) {
         this.strokes.push(this._currentStroke);
       }
@@ -209,7 +235,7 @@ const BrushTool = {
   },
 
   /** ── Apply SAM ────────────────────────────────── */
-  async applySam(layerIndex, currentMaskKey) {
+  async applySam(layerIndex, currentMaskKey, frameWidth) {
     if (this.strokes.length === 0) {
       alert('没有笔刷笔画，请先涂抹需要修正的区域。');
       return;
@@ -219,6 +245,7 @@ const BrushTool = {
       image_name: curImageName,
       layer_index: layerIndex,
       current_mask_key: currentMaskKey,
+      frame_width: frameWidth || this.frameWidth || 50,
       strokes: this.strokes.map(s => ({
         brush_type: s.type,
         points: s.points,
