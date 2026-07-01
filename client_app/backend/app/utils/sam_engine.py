@@ -332,9 +332,46 @@ def _snap_mask_to_edges(
         guide = guide_bgr.astype(np.float32) / 255.0
 
         # 2. 预处理：将二值蒙版转为软蒙版 (Soft Mask)
-        # 给予边界一定的灰度渐变，让导向滤波有将其"推/拉"到真实物理边缘的空间
+        mask_u8 = mask.astype(np.uint8) * 255
         mask_f32 = mask.astype(np.float32)
-        blur_size = max(3, edge_band * 2 + 1)
+        
+        # 默认最大模糊尺寸
+        max_blur = max(3, edge_band * 2 + 1)
+        blur_size = max_blur
+        
+        # 自适应模糊核检测：防止细小结构在过度模糊中溶解断裂
+        try:
+            n_labels, labels, cc_stats, _ = cv2.connectedComponentsWithStats(
+                mask_u8, connectivity=8
+            )
+            min_thickness = float('inf')
+            
+            for lid in range(1, n_labels):
+                area = cc_stats[lid, cv2.CC_STAT_AREA]
+                if area < 20:  # 忽略极小噪点
+                    continue
+                
+                # 提取独立连通域
+                comp_mask = (labels == lid).astype(np.uint8)
+                # 使用距离变换获取真实物理厚度（不受斜线 bbox 影响）
+                # 距离变换的最大值即为最大内切圆半径（厚度的一半）
+                dist = cv2.distanceTransform(comp_mask, cv2.DIST_L2, 3)
+                thickness = dist.max() * 2
+                
+                if thickness < min_thickness:
+                    min_thickness = thickness
+                    
+            # 如果存在极细结构，clamp blur_size 保证峰值不被稀释
+            if min_thickness < float('inf'):
+                # 确保模糊核不超过细线厚度的一半，且必须是奇数
+                safe_blur = max(3, int(min_thickness / 2))
+                safe_blur = safe_blur if safe_blur % 2 == 1 else safe_blur - 1
+                blur_size = min(max_blur, safe_blur)
+        except Exception as e:
+            from loguru import logger
+            logger.debug(f"[边缘吸附] 自适应模糊核检测跳过: {e}")
+            blur_size = max_blur
+
         soft_mask = cv2.GaussianBlur(mask_f32, (blur_size, blur_size), 0)
 
         # 3. 创建并执行导向滤波

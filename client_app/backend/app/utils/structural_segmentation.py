@@ -600,17 +600,27 @@ def build_sam_driven_layers(
             repaired, bridges, erased = repair_layer_mask(
                 raw_u8, frame_mask, min_island_area,
             )
-        # ── 细碎伪影过滤：消除 SAM 网格裁切残留的细长缝隙 ──
+        # ── 形态学伪影过滤：消除深度渐变光晕及 SAM 接缝残留 ──
         n_labels, labels, cc_stats, _ = cv2.connectedComponentsWithStats(
             repaired, connectivity=8,
         )
         artifacts_erased = 0
         for lid in range(1, n_labels):
-            _, _, cw, ch, area = cc_stats[lid]
-            min_dim = max(1, min(cw, ch))
-            max_dim = max(cw, ch)
-            aspect_ratio = max_dim / min_dim
-            if min_dim <= 12 and aspect_ratio > 15 and area < 15000:
+            area = cc_stats[lid, cv2.CC_STAT_AREA]
+            
+            # 优化：主体对象（大面积连通域）直接跳过，保护性能及附着的尖锐结构（如塔尖）
+            if area > 10000:
+                continue
+                
+            # 提取当前独立分量的蒙版
+            comp_mask = (labels == lid).astype(np.uint8)
+            
+            # 极限厚度测试：使用 5x5 内核进行腐蚀。
+            # 5x5 会从四面八方吃掉 2 个像素，因此厚度 <= 4px 的纯细线会完全消失。
+            # 如果腐蚀后像素和为 0，说明它是纯粹的渐变接缝，予以抹除！
+            eroded = cv2.erode(comp_mask, np.ones((5, 5), np.uint8))
+            
+            if eroded.sum() == 0:
                 repaired[labels == lid] = 0
                 artifacts_erased += 1
         if artifacts_erased > 0:
