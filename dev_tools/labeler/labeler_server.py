@@ -214,7 +214,7 @@ def run_segmentation(req: SegmentRequest) -> dict:
         )
         frame_mask_full = frame_mask  # 已是原图分辨率，跳过 Step 6
 
-        # ── GrabCut 边缘吸附：层蒙版沿原图真实边缘对齐 ──
+        # ── 导向滤波边缘吸附：层蒙版沿原图真实边缘对齐 ──
         if req.quality != "draft":
             try:
                 from app.utils.sam_engine import _snap_mask_to_edges
@@ -315,10 +315,10 @@ def run_segmentation(req: SegmentRequest) -> dict:
     if req.quality == "draft":
         suffix += "_dr"
     elif sam_driven_mode:
-        # GrabCut edge refinement (integrated in sam_driven post-processing)
-        suffix += "_gc_fin" if req.quality == "fine" else "_gc"
+        # 导向滤波边缘吸附 (integrated in sam_driven post-processing)
+        suffix += "_gf_fin" if req.quality == "fine" else "_gf"
     else:
-        # none/slic + SAM refine_mask (internally uses GrabCut too)
+        # none/slic + SAM refine_mask (导向滤波已内置)
         suffix += "_ref"
 
     # 向外延伸边框 → pad 原图以匹配扩展后的层蒙版
@@ -681,6 +681,14 @@ def api_brush_refine(req: BrushRefineRequest):
 
         refined_sam = np.asarray(masks[0])
         score = float(scores[0])
+
+        # ── 导向滤波边缘吸附：将 SAM 语义边界咬合到原图真实物理边缘 ──
+        try:
+            from app.utils.sam_engine import _snap_mask_to_edges
+            refined_sam = _snap_mask_to_edges(refined_sam.astype(bool), image, edge_band=5)
+        except Exception:
+            pass  # 导向滤波失败不阻断流程，使用原始 SAM 结果
+
         if score < 0.3:
             return {"ok": False, "message": f"SAM 置信度过低: {score:.2f}", "score": score}
 
