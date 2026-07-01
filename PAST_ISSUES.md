@@ -472,3 +472,34 @@
 - **验证**：北京.jpg n=7 正常返回 7 层 ✅
 - **影响文件**：`structural_segmentation.py` `find_valley_thresholds()`
 - **通用原则**：依赖外部生成 N 个值的函数必须有硬兜底
+
+---
+
+## 案例 32：GrabCut 边缘吸附在高频边界产生块状伪影 → 导向滤波重写
+
+- **日期**：2026-07-01
+- **状态**：✅ 已修复
+- **症状**：埃菲尔铁塔钢架等高频复杂边缘产生严重块状（狗咬）伪影和黏连；布达佩斯建筑-天空边界出现弧形光晕接缝；细线结构（4px斜拉索）经导向滤波后被溶为离散圆点
+- **诊断链**：
+  1. GrabCut trimap + ROI裁剪的GMM模型对高频纹理（钢架网格）无法精准分割
+  2. 深度渐变产生的弧形光晕被 `aspect_ratio > 15` 过滤逻辑漏过（弧形无固定长宽比）
+  3. 固定 `blur_size=11` 的高斯模糊将 ≤4px 细线完全溶解，导向滤波在此基础上重构为离散点
+- **根因**：三重——
+  - GrabCut 不适合像素级高频边界（钢架、天线）
+  - BBox-based aspect_ratio 过滤无法捕获弧形/曲线伪影
+  - 固定大尺寸模糊核无视局部结构厚度
+- **修复**（三个 commit，6 文件）：
+  1. **导向滤波重写** (`0677afa`): `_snap_mask_to_edges` 替换为 `cv2.ximgproc.createGuidedFilter`，O(N)全图运行；`_smooth_mask_for_vectorization` 删除；`opencv-python-headless`→`opencv-contrib-python`
+  2. **形态学腐蚀过滤器** (`cec7fe0`): `structural_segmentation.py` Step5 中 aspect_ratio 过滤→5×5 连通分量腐蚀测试；面积>10000 直接跳过
+  3. **自适应 blur_size** (`cec7fe0`): `cv2.distanceTransform` 检测最小结构厚度，clamp `blur_size ≤ thickness/2`
+  4. **笔刷精修集成** (`250e331`): `labeler_server.py` `/api/brush-refine` 插入 `_snap_mask_to_edges`，全图+局部统一管线
+- **验证**：
+  - 巴黎铁塔层0: 22,949→339px (-98.5%)，导向滤波咬合到钢架物理边界
+  - 布达佩斯 erased: 1→22，形态学过滤成功抹除弧形光晕
+  - 迪拜三层层变化均<0.02%，无伪影回归
+  - 笔刷精修与全图分割使用同一导向滤波函数
+- **影响文件**：`sam_engine.py`, `structural_segmentation.py`, `labeler_server.py`, `requirements.txt`, `rerun_paris_dubai_v2.py`, `outputs/README.md`
+- **通用原则**：
+  - 边缘吸附应从"图模型分割"转向"图像引导滤波"（导向滤波天然匹配原图纹理）
+  - 伪影过滤应从"几何形状判定"转向"形态学腐蚀测试"（与形状无关）
+  - 滤波器参数必须自适应局部结构（distanceTransform 防溶解）

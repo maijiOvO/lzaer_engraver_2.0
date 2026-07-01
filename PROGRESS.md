@@ -1,7 +1,7 @@
 # 项目进度 (Progress Log)
 
-> 最后更新：2026-06-30（笔刷引擎 5 Bug 修复 + SAM 细线伪影根治 + 连通性桥接移除 + fw 偏移复发问题文档化）
-> Git HEAD：待提交
+> 最后更新：2026-07-01（导向滤波边缘吸附引擎重写 + 形态学伪影过滤 + 自适应blur + 笔刷精修集成）
+> Git HEAD：cec7fe0
 
 ## 整体架构状态
 
@@ -62,6 +62,26 @@
 - **不动**: client_app/、Docker、docker-compose
 - **详见**: docs/开发者优化SAM处理脚本计划.md
 
+### 2026-07-01 — 导向滤波(Guided Filter)边缘吸附引擎重写，替代 GrabCut
+- **旧方案**: `_snap_mask_to_edges` 使用 GrabCut + trimap + ROI裁剪
+- **新方案**: `cv2.ximgproc.createGuidedFilter` — O(N) 全图运行，像素级边界咬合
+- **关键参数**: `radius=edge_band, eps=1e-5`，死死咬住埃菲尔铁塔级高频边缘
+- **自适应 blur_size**: `cv2.distanceTransform` 检测最细结构厚度，clamp 模糊核防溶解
+- **依赖变更**: `opencv-python-headless` → `opencv-contrib-python`
+- **测试验证**: 巴黎铁塔层0 22,949→339px (-98.5%)，布达佩斯 erased 1→22
+- **详见**: sam_engine.py `_snap_mask_to_edges`
+
+### 2026-07-01 — 笔刷精修集成导向滤波 + 全图/局部统一管线
+- **修复**: `labeler_server.py` `/api/brush-refine` 在 SAM predict 后插入 `_snap_mask_to_edges`
+- **结果**: 全图分割 + 标定工具 + 笔刷精修三路统一使用同一导向滤波函数
+- **详见**: labeler_server.py L687-691
+
+### 2026-07-01 — 形态学腐蚀伪影过滤器替代 aspect_ratio 过滤
+- **旧方案**: `aspect_ratio > 15 && min_dim <= 12` 仅过滤细长矩形
+- **新方案**: 5×5 连通分量腐蚀测试 — 腐蚀后完全消失即抹除
+- **效果**: 弧形光晕、曲线接缝全部捕获；主体对象 (>10000px²) 直接跳过
+- **详见**: structural_segmentation.py Step 5
+
 ### 2026-06-12 — Bug 修复：callSvg useCallback 闭包过期（案例 13）
 
 - **症状**: connectivity 重跑后 SVG 不会标记为 stale，stale 检测中 connectivity 维度失效
@@ -98,19 +118,22 @@
 | references/multiple/ | 2 张纸雕 SVG (CorelDRAW) | SVG 生成的格式参考 |
 | test_imgs/ | 100+ 张测试图 | 各阶段测试输入 |
 | benchmarks/lineart_compare/ | 117 图对比结果 | canny_lineart 算法验证 |
+| outputs/sam/n3_f50_i100_gf/ | 巴黎+迪拜+布达佩斯 导向滤波测试结果 | 边缘吸附效果对比 |
 
 ## 下一步
 
-1. ~~集成测试：全管线联调（upload → SVG）~~ ✅ 已完成 — 2026-06-12
+1. ~~集成测试：全管线联调（upload → SVG）~~ ✅ — 2026-06-12
 2. ~~修复 UNSOLVED_ISSUES.md 案例 16（n_layers 上限校验）~~ ✅
 3. ~~修复 UNSOLVED_ISSUES.md 案例 17（多层 SVG total_points）~~ ✅
 4. ~~SAM 测试脚本升级为四模式效率工具~~ ✅ — 2026-07-02
 5. ~~标定器全链路修复~~ ✅ — 2026-06-17 晚（案例 25-31）
-6. 标定 test_imgs/ 中 10+ 张图 → 训练预测器 → 验证预测精度
-7. 前端多步骤预览（connectivity/svg 步骤的 Canvas 叠加）
-8. 连通性修复的 dev_tools 独立测试脚本
+6. ~~GrabCut → 导向滤波迁移~~ ✅ — 2026-07-01（全图+笔刷精修全套）
+7. ~~形态学腐蚀伪影过滤 + 自适应 blur_size~~ ✅ — 2026-07-01
+8. 标定 test_imgs/ 中 10+ 张图 → 训练预测器 → 验证预测精度
+9. 前端多步骤预览（connectivity/svg 步骤的 Canvas 叠加）
+10. 连通性修复的 dev_tools 独立测试脚本
 
-## 架构变更记录
+## 架构变更时间线
 
 | 日期 | 变更 | 详见 |
 |------|------|------|
@@ -123,3 +146,8 @@
 | 2026-06-30 | SAM crop_n_layers=0 消除网格裁切伪影 + 细碎分量后处理过滤 | sam_engine.py, structural_segmentation.py |
 | 2026-06-30 | repair_layer_mask 桥接逻辑移除；build_sam_driven_layers skip_connectivity_repair | structural_segmentation.py |
 | 2026-06-30 | fw 偏移复发问题文档化（PAST_ISSUES 新增复发型问题警告） | PAST_ISSUES.md |
+| 2026-07-01 | 导向滤波(Guided Filter)重写边缘吸附引擎 | sam_engine.py, requirements.txt |
+| 2026-07-01 | 笔刷精修集成导向滤波，全图+局部统一管线 | labeler_server.py |
+| 2026-07-01 | 形态学腐蚀伪影过滤器替代 aspect_ratio 过滤 | structural_segmentation.py |
+| 2026-07-01 | 自适应 distanceTransform blur_size 防细线溶解 | sam_engine.py |
+| 2026-07-01 | 巴黎+迪拜+布达佩斯导向滤波测试完成 | dev_tools/outputs/sam/n3_f50_i100_gf/ |
